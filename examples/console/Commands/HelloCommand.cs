@@ -12,7 +12,6 @@ public class HelloCommand : ICliCommand
         _invocationContext = invocationContext;
     }
     
-    
     public Task Execute()
     {
         System.Console.WriteLine("Hello World");
@@ -50,16 +49,11 @@ public class WorldCommand : ICliCommand
     }
     
     public Task Execute(
-        GlobalOption globalone
+        string token
     )
     {
-        System.Console.WriteLine("Hello World");
-
-        if (_invocationContext.TryGetSingleOptionValue("globalone", out GlobalOption globalOption))
-            System.Console.WriteLine($"Global Option (from context provider) is set {globalOption}");
-        
-        System.Console.WriteLine($"Global Option (from arg) is set {globalone}");
-        
+        System.Console.WriteLine("World Command");
+        System.Console.WriteLine($"Token = {token}");
         return Task.CompletedTask;
     }
 }

@@ -24,8 +24,8 @@ public class MethodInfoBasedCommandBuilder<TCliCommand> : ICommandBuilder
     private readonly string? _commandAlias;
     private readonly string _description;
     private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description)> _subCommands;
-    private readonly MethodInfo? _singleCommandMethodInfo;
-    private bool SingleCommandMode => !_subCommands.Any() && _singleCommandMethodInfo != null;
+    private readonly MethodInfo? _commandExecuteMethodInfo;
+    private bool SingleCommandMode => !_subCommands.Any() && _commandExecuteMethodInfo != null;
         
     public MethodInfoBasedCommandBuilder(Command rootCommand)
     {
@@ -65,18 +65,13 @@ public class MethodInfoBasedCommandBuilder<TCliCommand> : ICommandBuilder
             )
             .ToList();
 
-        if (_subCommands.Any()) 
-            return;
-            
-        // SINGLE COMMAND MODE!
-        // command doesn't have any subcommands
-        var executeMethod =
-            methods.FirstOrDefault(x => x.Name.Equals("Execute", StringComparison.OrdinalIgnoreCase));
+        var executeMethod = methods.FirstOrDefault(x => x.Name.Equals("Execute", StringComparison.OrdinalIgnoreCase));
 
-        if (executeMethod == null)
+        if (executeMethod != null) 
+            _commandExecuteMethodInfo = executeMethod;
+
+        if (executeMethod == null && _subCommands.Count == 0) 
             throw new InvalidOperationException("Command doesn't have any subcommands or an Execute method");
-
-        _singleCommandMethodInfo = executeMethod;
     }
 
     private Option BuildDateTimeOption(string name, ParameterInfo p)
@@ -214,8 +209,6 @@ public class MethodInfoBasedCommandBuilder<TCliCommand> : ICommandBuilder
                 var d = HandlerDescriptor.FromMethodInfo(mi, instance);
                 var handler = d.GetCommandHandler();
                 await handler.InvokeAsync(context);
-                // var invoker = new ModelBindingCommandHandler(mi, descriptor, instance);
-                // await invoker.InvokeAsync(context);
             });
     }
 
@@ -229,114 +222,21 @@ public class MethodInfoBasedCommandBuilder<TCliCommand> : ICommandBuilder
         if (_commandAlias != null) 
             parentCommand.AddAlias(_commandAlias);
 
-        if (_singleCommandMethodInfo != null)
+        if (_commandExecuteMethodInfo != null)
         {
-            PopulateCommandFromMethodInfo(_singleCommandMethodInfo, parentCommand);
-        }
-        else
-        {
-            foreach (var method in _subCommands)
-            {
-                var subCommand = new Command(method.SubCommandAttribute.Name, method.Description.Description);
-
-                if (method.SubCommandAttribute.HasAlias)
-                    subCommand.AddAlias(method.SubCommandAttribute.Alias);
-                
-                PopulateCommandFromMethodInfo(method.Info, subCommand);
-
-                // var descriptor = HandlerDescriptor.FromMethodInfo(method.Info);
-                // subCommand.Handler = SetupCommandHandlerFromMethodInfo(method.Info);
-                //
-                // // build options
-                // var parameterInfoLookup = method.Info.GetParameters()
-                //     .ToDictionary<ParameterInfo, string>(x => x.Name!);
-                //
-                // descriptor.ParameterDescriptors
-                //     .Select(
-                //         x =>
-                //         {
-                //             (bool isArgument, Symbol? symbol) result;
-                //             if (x.ValueType == typeof(bool))
-                //             {
-                //                 var symbol = (Symbol)new Option<bool>(
-                //                     $"--{x.ValueName}",
-                //                     (parameterInfoLookup[x.ValueName].GetCustomAttribute<DescriptionAttribute>() ??
-                //                      DescriptionAttribute.Default).Description
-                //                 );
-                //
-                //                 result = (false, symbol);
-                //             }
-                //             else
-                //             {
-                //                 var cliSubCommandArgument = parameterInfoLookup[x.ValueName]
-                //                     .GetCustomAttribute<CliSubCommandArgumentAttribute>();
-                //
-                //                 if (cliSubCommandArgument != null)
-                //                 {
-                //                     var argType = typeof(Argument<>)
-                //                         .MakeGenericType(x.ValueType);
-                //
-                //                     var symbol = (Argument?)Activator.CreateInstance(
-                //                         argType,
-                //                         x.ValueName,
-                //                         (parameterInfoLookup[x.ValueName]
-                //                              .GetCustomAttribute<DescriptionAttribute>() ??
-                //                          DescriptionAttribute.Default).Description
-                //                     );
-                //
-                //                     result = (true, symbol);
-                //                 }
-                //                 else
-                //                 {
-                //                     if (x.ValueType == typeof(DateTime))
-                //                     {
-                //                         result = (
-                //                             false,
-                //                             BuildDateTimeOption(x.ValueName, parameterInfoLookup[x.ValueName])
-                //                         );
-                //                     }
-                //                     else
-                //                     {
-                //                         var optionType = typeof(Option<>)
-                //                             .MakeGenericType(x.ValueType);
-                //
-                //                         var description =
-                //                             (parameterInfoLookup[x.ValueName]
-                //                                  .GetCustomAttribute<DescriptionAttribute>() ??
-                //                              DescriptionAttribute.Default).Description;
-                //                         var symbol = (Option?)Activator.CreateInstance(
-                //                             optionType,
-                //                             $"--{x.ValueName}",
-                //                             description
-                //                         );
-                //
-                //                         result = (false, symbol);
-                //                     }
-                //                 }
-                //             }
-                //
-                //             if (result.symbol == null)
-                //                 throw new InvalidOperationException();
-                //
-                //             return result;
-                //         }
-                //     )
-                //     .ToList()
-                //     .ForEach(tuple =>
-                //     {
-                //         var (isArgument, symbol) = tuple;
-                //
-                //         if (!isArgument)
-                //             subCommand.AddOption((Option?)symbol ?? throw new InvalidOperationException());
-                //         else
-                //             subCommand.AddArgument((Argument?)symbol ?? throw new InvalidOperationException());
-                //     });
-
-                parentCommand.AddCommand(subCommand);
-            }
+            PopulateCommandFromMethodInfo(_commandExecuteMethodInfo, parentCommand);
         }
 
-            
+        foreach (var method in _subCommands)
+        {
+            var subCommand = new Command(method.SubCommandAttribute.Name, method.Description.Description);
+            if (method.SubCommandAttribute.HasAlias)
+                subCommand.AddAlias(method.SubCommandAttribute.Alias);
+            PopulateCommandFromMethodInfo(method.Info, subCommand);
+            parentCommand.AddCommand(subCommand);
+        }
+
+
         return parentCommand;
     }
 }
