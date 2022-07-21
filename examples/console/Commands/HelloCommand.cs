@@ -42,10 +42,12 @@ public class HelloCommand : ICliCommand
 public class WorldCommand : ICliCommand
 {
     private readonly IInvocationContext _invocationContext;
+    private readonly ICliRenderer _cliRenderer;
 
-    public WorldCommand(IInvocationContext invocationContext)
+    public WorldCommand(IInvocationContext invocationContext, ICliRenderer cliRenderer)
     {
         _invocationContext = invocationContext;
+        _cliRenderer = cliRenderer;
     }
     
     public Task Execute(
@@ -54,6 +56,19 @@ public class WorldCommand : ICliCommand
     {
         System.Console.WriteLine("World Command");
         System.Console.WriteLine($"Token = {token}");
+
+        var x = new[]
+        {
+            new
+            {
+                username = "abc"
+            },
+            new
+            {
+                username = "def"
+            }
+        }.AsEnumerable();
+        _cliRenderer.Render(x);
         return Task.CompletedTask;
     }
 }

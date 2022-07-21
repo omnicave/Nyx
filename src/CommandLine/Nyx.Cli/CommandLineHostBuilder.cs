@@ -153,8 +153,12 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         var assembly = Assembly.GetCallingAssembly();
 
         var commandTypes = assembly.GetTypes()
-            .Select(t => (type: t, attr: t.GetCustomAttribute<CliCommandAttribute>(),
-                isCommand: t.GetInterfaces().Contains(typeof(ICliCommand))))
+            .Select(t => (
+                type: t, 
+                attr: t.GetCustomAttribute<CliCommandAttribute>(),
+                isCommand: t.GetInterfaces().Contains(typeof(ICliCommand))
+                )
+            )
             .Where(t => t.isCommand)
             .ToList();
             
@@ -179,8 +183,11 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         var cliBuilder = new CommandLineBuilder(rootCommand);
         _cliBuilderHandlers.ForEach( x => x(cliBuilder) );
         
-        foreach (var commandBuilder in _commandTypes.Select(item => typeof(MethodInfoBasedCommandBuilder<>)
-                         .MakeGenericType(item))
+        foreach (var commandBuilder in _commandTypes
+                     .Select(item => 
+                         typeof(MethodInfoBasedCommandBuilder<>)
+                         .MakeGenericType(item)
+                         )
                      .Select(commandBuilderType => (ICommandBuilder?)Activator.CreateInstance(commandBuilderType, new object[] { rootCommand }) ?? throw new InvalidOperationException()))
         {
             rootCommand.AddCommand(commandBuilder.Build());
@@ -200,6 +207,8 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                     services.AddSingleton(invocation.Console);
                     services.AddTransient(_ => invocation.InvocationResult);
                     services.AddTransient(_ => invocation.ParseResult);
+                    
+                    services.AddOutputFormattingSupport();
                 });
                 hostBuilder.UseInvocationLifetime(invocation);
                 ApplyHostBuilderOperations(hostBuilder);

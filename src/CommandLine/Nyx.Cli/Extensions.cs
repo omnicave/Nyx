@@ -59,14 +59,12 @@ namespace Microsoft.Extensions.DependencyInjection
                 provider =>
                 {
                     var cliRenderers = provider.GetServices<ICliRendererWithFormat>();
+                    var invocationContext = provider.GetRequiredService<IInvocationContext>();
 
-                    var invocationContext = provider.GetRequiredService<InvocationContext>();
-                    var optFormat = invocationContext.ParseResult.CommandResult.Children
-                        .Where(c => c.Symbol is Option<OutputFormat>)
-                        .ToList();
+                    if (!invocationContext.TryGetSingleOptionValue<OutputFormat>("output", out var outputFormat))
+                        outputFormat = OutputFormat.raw;
 
-                    var format = ((OptionResult)optFormat[0]).GetValueOrDefault<OutputFormat>();
-                    return (ICliRenderer)cliRenderers.First(x => x.Format == format);
+                    return (ICliRenderer)cliRenderers.First(x => x.Format == outputFormat);
                 }
             );
 
