@@ -17,7 +17,8 @@ class InvocationContextHelper : IInvocationContext
 
     public TValue GetSingleOptionValue<TValue>(string optionName)
     {
-        var optResults = _invocationContext.ParseResult.CommandResult.Children
+        var optResults = _invocationContext.ParseResult.RootCommandResult.Children
+            .Concat(_invocationContext.ParseResult.CommandResult.Children)
             .OfType<OptionResult>()
             .Where(c => c.Symbol is Option<TValue> && c.Option.Name.Equals(optionName))
             .ToArray();
