@@ -1,7 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.CommandLine;
 using System.Linq.Expressions;
+using Spectre.Console;
 
 namespace Nyx.Cli.Rendering
 {
@@ -47,5 +49,11 @@ namespace Nyx.Cli.Rendering
                 Console.WriteLine("{0}: {1}", p.propertyName, stringFormat);
             }
         }
+
+        public override void RenderError(Exception e)
+        {
+            AnsiConsole.WriteException(e);
+        }
+        
     }
 }

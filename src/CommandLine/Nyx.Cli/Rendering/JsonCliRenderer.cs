@@ -45,5 +45,21 @@ namespace Nyx.Cli.Rendering
                 _serializer.Serialize(Console.Out, item);
             }
         }
+
+        public override void RenderError(Exception e)
+        {
+            _serializer.Serialize(Console.Out, new
+            {
+                e.Message,
+                e.Source,
+                e.StackTrace,
+                InnerException = e.InnerException != null ? new
+                {
+                    e.InnerException.Message,
+                    e.InnerException.Source,
+                    e.InnerException.StackTrace,
+                } : null
+            });
+        }
     }
 }

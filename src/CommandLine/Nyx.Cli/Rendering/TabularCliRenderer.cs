@@ -43,7 +43,12 @@ namespace Nyx.Cli.Rendering
 
         public override void Render<T>(T item, Expression<Func<T, object>>? selector = null)
         {
-            this.Render(new[] { item }.AsEnumerable());
+            Render(new[] { item }.AsEnumerable());
+        }
+
+        public override void RenderError(Exception e)
+        {
+            AnsiConsole.WriteException(e);
         }
     }
 }
