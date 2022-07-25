@@ -87,10 +87,12 @@ public class ErrorCommand : ICliCommand
 public class TextCommand : ICliCommand
 {
     private readonly IAnsiConsole _console;
+    private readonly IInvocationContext _invocationContext;
 
-    public TextCommand(IAnsiConsole console)
+    public TextCommand(IAnsiConsole console, IInvocationContext invocationContext)
     {
         _console = console;
+        _invocationContext = invocationContext;
     }
     public async Task Execute()
     {
@@ -128,5 +130,7 @@ public class TextCommand : ICliCommand
                 }
             });
 
+        _invocationContext.SetExitCode(1);
+        
     }
 }

@@ -259,6 +259,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                     
                     services.AddOptions();
                 });
+                
                 hostBuilder.UseInvocationLifetime(context);
                 ApplyHostBuilderOperations(hostBuilder);
            
