@@ -18,6 +18,8 @@ namespace Nyx.Cli
         void Render<T>(IEnumerable<T> items, Expression<Func<T, object>>? selector = null);
 
         void Render<T>(T item, Expression<Func<T, object>>? selector = null);
+
+        void RenderError(Exception e);
     }
     
     public interface ICliRendererWithFormat : ICliRenderer
