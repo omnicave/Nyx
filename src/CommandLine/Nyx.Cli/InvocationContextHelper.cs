@@ -75,6 +75,11 @@ class InvocationContextHelper : IInvocationContext
         value = v;
         return true;
     }
+
+    public void SetExitCode(int exitCode)
+    {
+        _invocationContext.ExitCode = exitCode;
+    }
 }
 
 public interface IInvocationContext
@@ -82,4 +87,6 @@ public interface IInvocationContext
     TValue GetSingleOptionValue<TValue>(string optionName);
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue? value);
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue value, TValue defaultValueIfNotFound);
+
+    void SetExitCode(int exitCode);
 }
