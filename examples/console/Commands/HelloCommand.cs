@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Logging;
 using Nyx.Cli;
+using Spectre.Console;
 
 namespace Nyx.Examples.Console.Commands;
 
@@ -43,20 +45,19 @@ public class WorldCommand : ICliCommand
 {
     private readonly IInvocationContext _invocationContext;
     private readonly ICliRenderer _cliRenderer;
+    private readonly ILogger<WorldCommand> _logger;
 
-    public WorldCommand(IInvocationContext invocationContext, ICliRenderer cliRenderer)
+    public WorldCommand(IInvocationContext invocationContext, ICliRenderer cliRenderer, ILogger<WorldCommand> logger)
     {
         _invocationContext = invocationContext;
         _cliRenderer = cliRenderer;
+        _logger = logger;
     }
     
     public Task Execute(
         string token
     )
     {
-        System.Console.WriteLine("World Command");
-        System.Console.WriteLine($"Token = {token}");
-
         var x = new[]
         {
             new
@@ -70,5 +71,62 @@ public class WorldCommand : ICliCommand
         }.AsEnumerable();
         _cliRenderer.Render(x);
         return Task.CompletedTask;
+    }
+}
+
+[CliCommand("error")]
+public class ErrorCommand : ICliCommand
+{
+    public Task Execute()
+    {
+        throw new InvalidOperationException("Error testing command");
+    }
+}
+
+[CliCommand("text")]
+public class TextCommand : ICliCommand
+{
+    private readonly IAnsiConsole _console;
+
+    public TextCommand(IAnsiConsole console)
+    {
+        _console = console;
+    }
+    public async Task Execute()
+    {
+        _console.WriteLine();
+        _console.WriteLine("bold", Style.Parse("bold"));
+        _console.WriteLine("invert", Style.Parse("invert"));
+        _console.MarkupLine("[blue]blue text[/]");
+
+        await _console.Progress()
+            .AutoRefresh(false) // Turn off auto refresh
+            .AutoClear(false) // Do not remove the task list when done
+            .HideCompleted(false) // Hide tasks as they are completed
+            .Columns(new ProgressColumn[]
+            {
+                new TaskDescriptionColumn(), // Task description
+                new ProgressBarColumn(), // Progress bar
+                new PercentageColumn(), // Percentage
+                new RemainingTimeColumn(), // Remaining time
+                new SpinnerColumn(), // Spinner
+            })
+            .StartAsync(async ctx =>
+            {
+                // Define tasks
+                var task1 = ctx.AddTask("[green]Reticulating splines[/]");
+                var task2 = ctx.AddTask("[green]Folding space[/]");
+
+                while (!ctx.IsFinished)
+                {
+                    await Task.Delay(100);
+
+                    task1.Increment(1.5);
+                    task2.Increment(0.5);
+                    
+                    ctx.Refresh();
+                }
+            });
+
     }
 }
