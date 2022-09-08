@@ -147,11 +147,10 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         var commandTypes = assembly.GetTypes()
             .Select(t => (
                 type: t, 
-                attr: t.GetCustomAttribute<CliCommandAttribute>(),
-                isCommand: t.GetInterfaces().Contains(typeof(ICliCommand))
+                attr: t.GetCustomAttribute<CliCommandAttribute>()
                 )
             )
-            .Where(t => t.isCommand)
+            .Where(t => t.attr != null)
             .ToList();
             
         _commandTypes.AddRange(commandTypes.Select(x=>x.type));
