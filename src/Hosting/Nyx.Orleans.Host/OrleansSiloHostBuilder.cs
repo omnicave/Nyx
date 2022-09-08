@@ -42,7 +42,8 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         _serviceId = serviceId;
         _args = args;
         
-        var entryAssembly = Assembly.GetEntryAssembly() ?? throw new InvalidOperationException("Entry assembly not available.");
+        var entryAssembly = Assembly.GetEntryAssembly() 
+                            ?? throw new InvalidOperationException("Entry assembly not available.");
         
         _title = title 
                  ?? entryAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title 
