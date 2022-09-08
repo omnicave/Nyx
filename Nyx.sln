@@ -15,13 +15,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{6F09D89C
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "examples", "examples", "{A4F78CB3-B28E-4CA7-8D4B-66E93356DB1A}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orleans", "orleans", "{3DDE1DB2-E2B1-4A88-A50E-907B7FEA4364}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "orleans-pgsql", "orleans-pgsql", "{3DDE1DB2-E2B1-4A88-A50E-907B7FEA4364}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.server", "examples\orleans\orleans.server\orleans.server.csproj", "{3B241553-2A21-41D6-A869-8EE15CAC7F46}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.server", "examples\orleans-pgsql\orleans.server\orleans.server.csproj", "{3B241553-2A21-41D6-A869-8EE15CAC7F46}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.client", "examples\orleans\orleans.client\orleans.client.csproj", "{54B7B9CA-444F-43BD-BB9E-07C505B2E88E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.client", "examples\orleans-pgsql\orleans.client\orleans.client.csproj", "{54B7B9CA-444F-43BD-BB9E-07C505B2E88E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.shared", "examples\orleans\orleans.shared\orleans.shared.csproj", "{319F93E3-9972-4326-B43F-FD6E12CCBCA9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "orleans.shared", "examples\orleans-pgsql\orleans.shared\orleans.shared.csproj", "{319F93E3-9972-4326-B43F-FD6E12CCBCA9}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console", "examples\console\console.csproj", "{1A357980-E624-47D0-BA69-92278B366095}"
 EndProject

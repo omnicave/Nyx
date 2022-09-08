@@ -97,7 +97,7 @@ public class NewtonsoftJsonSerializer : IExternalSerializer
         }
 
         /// <inheritdoc />
-        public object DeepCopy(object source, ICopyContext context)
+        public object? DeepCopy(object? source, ICopyContext context)
         {
             if (source == null)
             {
@@ -122,7 +122,7 @@ public class NewtonsoftJsonSerializer : IExternalSerializer
         }
 
         /// <inheritdoc />
-        public object Deserialize(Type expectedType, IDeserializationContext context)
+        public object? Deserialize(Type expectedType, IDeserializationContext context)
         {
             if (context == null)
             {
@@ -140,7 +140,7 @@ public class NewtonsoftJsonSerializer : IExternalSerializer
         /// <param name="item">The object to serialize</param>
         /// <param name="context">The serialization context.</param>
         /// <param name="expectedType">The type the deserializer should expect</param>
-        public void Serialize(object item, ISerializationContext context, Type expectedType)
+        public void Serialize(object? item, ISerializationContext context, Type expectedType)
         {
             if (context == null)
             {

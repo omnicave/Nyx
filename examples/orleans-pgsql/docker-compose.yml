@@ -1,0 +1,21 @@
+version: "3.7"
+
+volumes:  
+  db:
+    driver: local  
+
+services:
+  redis:
+    image: redis:5.0.5-alpine
+    ports:
+      - 6370:6379
+  
+  postgres:
+    image: postgres:12.3
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password123
+    ports:
+      - 54321:5432
+    volumes:
+      - db:/var/lib/postgresql/data/

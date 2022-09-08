@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using Nyx.Hosting;
+using Nyx.Orleans.Host.Db;
 using Nyx.Orleans.Serialization;
 using Orleans;
 using Orleans.Configuration;
@@ -22,15 +23,10 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     private readonly string _title;
     private readonly string _version;
     private Action<MvcNewtonsoftJsonOptions> _configureJsonSerializer = options => { };
-    private Action<HostBuilderContext, ISiloBuilder> _configureOrleans = ConfigureOrleansForDevelopment;
-    
-    private static readonly Action<HostBuilderContext,ISiloBuilder> ConfigureOrleansForDevelopment = (context, builder) =>
-    {
-        //var endpoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 5003);
-        builder.UseDevelopmentClustering(primarySiloEndpoint: null)
-            .AddMemoryGrainStorage("PubSubStore")
-            ;
-    };
+    internal Action<HostBuilderContext, ISiloBuilder> ClusteringConfiguration = OrleansSiloHostBuilderExtensions.ConfigureOrleansForDevelopmentClustering;
+    internal readonly List<Action<HostBuilderContext, ISiloBuilder>> SiloBuilderExtraConfiguration = new();
+    internal Action<HostBuilderContext, ISiloBuilder> PubStoreConfiguration = (context, builder) => { };
+    //internal readonly List<Action<IServiceCollection>> HostServiceConfiguration = new();
 
     public OrleansSiloHostBuilder(
         string clusterId,
@@ -88,11 +84,49 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 });
             }
         );
+        
         builder.Services.AddHealthChecks();
+        
+        // get the current list of urls we are listening on and add '5082' to it to have the health checks respond
+        // on a separate port
+        var currentUrls = builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey) ?? "http://0.0.0.0:5001";
+        builder.WebHost.UseUrls(
+            currentUrls
+                .Split(';')
+                .Append("http://0.0.0.0:5081")
+                .ToArray()
+        );
+    }
 
-        builder.Host.UseOrleans( (context, siloBuilder) =>
+    public override IHost Build()
+    {
+        var webApplicationBuilder = _args == null ? WebApplication.CreateBuilder() : WebApplication.CreateBuilder(_args);
+        
+        webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
+        
+        ApplyHostBuilderOperations(webApplicationBuilder.Host);
+        
+        SetupWebApi(_title, webApplicationBuilder);
+        SetupOrleans(_title, webApplicationBuilder.Host);
+        
+        var app = webApplicationBuilder.Build();
+        SetupAppBuilder(app.Environment, app);
+
+        app.MapControllers();
+
+        return new OrleansHost(app);
+    }
+
+    private void SetupOrleans(string title, ConfigureHostBuilder host)
+    {
+        host.UseOrleans( (context, siloBuilder) =>
         {
-            _configureOrleans(context, siloBuilder);
+            ClusteringConfiguration(context, siloBuilder);
+
+            foreach (var item in SiloBuilderExtraConfiguration)
+                item(context, siloBuilder);
+            
+            PubStoreConfiguration(context, siloBuilder);
 
             siloBuilder
                 .Configure<SerializationProviderOptions>(options =>
@@ -116,29 +150,6 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                     }
                 );
         });
-        var currentUrls = builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey) ?? "http://0.0.0.0:5001";
-        builder.WebHost.UseUrls(
-            currentUrls
-                .Split(';')
-                .Append("http://0.0.0.0:5081")
-                .ToArray()
-        );
-    }
-
-    public override IHost Build()
-    {
-        var wab = _args == null ? WebApplication.CreateBuilder() : WebApplication.CreateBuilder(_args);
-        SetupWebApi(
-            _title,
-            wab
-        );
-        var app = wab.Build();
-        
-        SetupAppBuilder(app.Environment, app);
-
-        app.MapControllers();
-
-        return new OrleansHost(app);
     }
 
     private void SetupAppBuilder(IHostEnvironment environment, IApplicationBuilder app)
@@ -179,18 +190,6 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     public OrleansSiloHostBuilder ConfigureJsonSerializer(Action<MvcNewtonsoftJsonOptions> d)
     {
         _configureJsonSerializer = d ?? throw new ArgumentNullException(nameof(d));
-        return this;
-    }
-    
-    public OrleansSiloHostBuilder ConfigureOrleans(Action<HostBuilderContext, ISiloBuilder> d)
-    {
-        _configureOrleans = d ?? throw new ArgumentNullException(nameof(d));
-        return this;
-    }
-    
-    public OrleansSiloHostBuilder ConfigureForDevelopment()
-    {
-        _configureOrleans = ConfigureOrleansForDevelopment;
         return this;
     }
 }
