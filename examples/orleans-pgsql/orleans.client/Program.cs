@@ -24,12 +24,13 @@
 //
 // app.Run();
 
+using System.Net;
 using Orleans;
 using Orleans.Configuration;
 using orleans.shared;
 
 var client = new ClientBuilder()
-    .UseLocalhostClustering(12000)
+    .UseStaticClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000))
     // Clustering information
     .Configure<ClusterOptions>(options =>
     {

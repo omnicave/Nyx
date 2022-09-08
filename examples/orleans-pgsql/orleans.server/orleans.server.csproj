@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <Folder Include="Commands" />
+    <Folder Include="Controllers" />
   </ItemGroup>
 
 </Project>
