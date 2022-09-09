@@ -25,18 +25,20 @@
 // app.Run();
 
 using System.Net;
+using Nyx.Orleans.Host;
 using Orleans;
 using Orleans.Configuration;
 using orleans.shared;
 
 var client = new ClientBuilder()
-    .UseStaticClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000))
-    // Clustering information
-    .Configure<ClusterOptions>(options =>
-    {
-        options.ClusterId = "ExampleOrleansCluster";
-        options.ServiceId = "Ex1";
-    })
+    .UseSimplifiedClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000), "ExampleOrleansCluster", "Ex1")
+    // .UseStaticClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000))
+    // // // Clustering information
+    // .Configure<ClusterOptions>(options =>
+    // {
+    //     options.ClusterId = "ExampleOrleansCluster";
+    //     options.ServiceId = "Ex1";
+    // })
     // Application parts: just reference one of the grain interfaces that we use
     .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IHelloWorldGrain).Assembly))
     .Build();
