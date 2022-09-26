@@ -27,23 +27,28 @@ namespace Nyx.Cli
     }
 
     [AttributeUsage(AttributeTargets.Parameter)]
+    [Obsolete]
     public class CliSubCommandArgumentAttribute : Attribute
     {   
     }
     
+    [AttributeUsage(AttributeTargets.Parameter)]
+    public class CliArgumentAttribute : Attribute
+    {   
+    }
+    
 
-    [AttributeUsage(AttributeTargets.Property)]
+    [AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
     public class CliOptionAttribute : Attribute
     {
-        public string Name { get; }
+        // public string Name { get; }
 
         public string Alias { get; set; } = string.Empty;
         
         public bool HasAlias => !(ReferenceEquals(Alias, string.Empty) || string.IsNullOrWhiteSpace(Alias));
 
-        public CliOptionAttribute(string name)
+        public CliOptionAttribute()
         {
-            Name = name;
         }
     }
 }

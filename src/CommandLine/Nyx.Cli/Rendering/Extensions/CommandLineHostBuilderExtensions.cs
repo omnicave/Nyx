@@ -1,3 +1,6 @@
+using System;
+using System.CommandLine;
+using System.CommandLine.NamingConventionBinder;
 using Microsoft.Extensions.DependencyInjection;
 using Nyx.Cli;
 using Nyx.Cli.Rendering;

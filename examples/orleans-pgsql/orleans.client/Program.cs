@@ -28,6 +28,7 @@ using System.Net;
 using Nyx.Orleans.Host;
 using Orleans;
 using Orleans.Configuration;
+using Orleans.Runtime;
 using orleans.shared;
 
 var client = new ClientBuilder()
@@ -45,7 +46,7 @@ var client = new ClientBuilder()
 
 await client.Connect();
 
-var g = client.GetGrain<IHelloWorldGrain>(Guid.NewGuid());
+var g = client.GetGrain<IManagementGrain>(0);
 
-var motd = await g.GetMotd();
-Console.WriteLine($"Motd: {motd ?? "<null>"}");
+var motd = await g.GetHosts();
+motd.Select(x=> $"{x.Key.Endpoint}[{x.Key.Generation}][{x.Value}][{x.Key.IsClient}]").ToList().ForEach( Console.WriteLine);

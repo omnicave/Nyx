@@ -46,6 +46,4 @@ public class PropertyReaderBuilderTests
         result.Should().BeSameAs(testItem.ArrayOfString);
         
     }
-    
-    
 }
