@@ -67,4 +67,50 @@ public class ParameterParsingTests
 
         mock.Verify();
     }
+    
+    [Fact]
+    public async Task WithAsyncDelegateRootCommandHandler_NoArguments_WithExitCode()
+    {
+        var called = false;
+
+        Task<int> RootCommandWithGenericTask()
+        {
+            called = true;
+            return Task.FromResult(1);
+        }
+        
+        var exitCode = await CommandLineHostBuilder.Create(Array.Empty<string>())
+            .ConfigureServices((context, collection) =>
+            {
+                collection.AddScoped<IRandomTextService, RandomTextService>();
+            })
+            .WithRootCommandHandler(RootCommandWithGenericTask)
+            .RunAsync();
+
+        called.Should().BeTrue();
+        exitCode.Should().Be(1);
+    }
+    
+    [Fact]
+    public async Task WithAsyncDelegateRootCommandHandler_NoArguments()
+    {
+        var called = false;
+
+        Task RootCommandWithNonGenericTask()
+        {
+            called = true;
+            return Task.FromResult(1);
+        }
+        
+        var exitCode = await CommandLineHostBuilder.Create(Array.Empty<string>())
+            .ConfigureServices((context, collection) =>
+            {
+                collection.AddScoped<IRandomTextService, RandomTextService>();
+            })
+            .WithRootCommandHandler(RootCommandWithNonGenericTask)
+            .RunAsync();
+
+        called.Should().BeTrue();
+        exitCode.Should().Be(1);
+    }
 }

@@ -29,6 +29,10 @@ public static partial class CommandLineHostBuilderExtensions
 
     public static ICommandLineHostBuilder WithRootCommandHandler<T>(this ICommandLineHostBuilder builder, Func<T> factory) where T : class
     {
+        if (typeof(T) == typeof(Task)|| typeof(T).BaseType == typeof(Task))
+        {
+            return WithRootCommandHandler(builder, (Delegate)factory);
+        }
         builder.ConfigureServices((context, collection) => collection.AddScoped<T>(provider => factory()));
         ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
         return builder;
