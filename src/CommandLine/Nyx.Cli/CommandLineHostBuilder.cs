@@ -4,6 +4,7 @@ using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
 using System.CommandLine.Invocation;
+using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -17,16 +18,24 @@ using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
+using Nyx.Cli.CommandBuilders;
 using Nyx.Cli.Logging;
+using Nyx.Cli.Rendering;
 using Nyx.Hosting;
 using Spectre.Console;
 
 namespace Nyx.Cli;
 
-public interface ICommandLineHostBuilder
+public interface ICommandLineHostBuilder : IHostBuilder
 {
-    ICommandLineHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate);
+    new ICommandLineHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate);
+    
     ICommandLineHostBuilder RegisterCommandsFromThisAssembly();
+    ICommandLineHostBuilder RegisterCommand<T>()
+        where T : class;
+
+    ICommandLineHostBuilder RegisterCommand(Type t);
+    
     ICommandLineHostBuilder AddYamlConfigurationFile(string path);
 
     ICommandLineHostBuilder AddGlobalOption<TOption>()
@@ -80,7 +89,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private readonly string _name;
     private readonly string[] _args;
     
-    private readonly List<Type> _commandTypes = new();
+    private readonly List<(Type commandType, Func<Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
     private readonly List<Action<CommandLineBuilder>> _cliBuilderHandlers = new();
         
     private Func<IInvocationContext, IHostBuilder> _hostBuilderFactory = DefaultHostBuilderFactory;
@@ -153,34 +162,62 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             .Where(t => t.attr != null)
             .ToList();
             
-        _commandTypes.AddRange(commandTypes.Select(x=>x.type));
+        commandTypes.Select(x=>x.type).ToList().ForEach( t=> RegisterCommand(t));
             
         return this;
     }
 
-    public override IHost Build() => throw new NotImplementedException("Call RunAsync() directly.");
+    public ICommandLineHostBuilder RegisterCommand<T>()
+        where T : class =>
+        RegisterCommandInternal<T>();
 
-    public async Task<int> RunAsync()
+    public ICommandLineHostBuilder RegisterCommand(Type t)
+    {
+        var mi = GetType()
+            .GetMethod(nameof(RegisterCommandInternal), BindingFlags.Default | BindingFlags.NonPublic | BindingFlags.Instance)?
+            .MakeGenericMethod(t);
+
+        if (mi == null)
+            throw new InvalidOperationException("Could not register typed command due - invalid method info");
+
+        var result = mi.Invoke(this, Array.Empty<object?>());
+
+        if (result is ICommandLineHostBuilder r)
+            return r;
+
+        throw new InvalidOperationException("Invalid result from RegisterCommandInternal()");
+    }
+
+    private ICommandLineHostBuilder RegisterCommandInternal<T>()
+        where T : class
+    {
+        _commands.Add(( typeof(T), rootCommand => new TypedChildCommandBuilder<T>(rootCommand) ) );
+        return this;
+    }
+
+    public override IHost Build()
     {
         ConfigureServices((context, services) =>
         {
             services.AddScoped<IInvocationContext, InvocationContextHelper>();
-            foreach (var item in _commandTypes)
-                services.AddScoped(item);
+            foreach (var item in _commands)
+                services.AddScoped(item.commandType);
         });
         
+        
+        
         // build cli root command
-        var rootCommand = new Command(_name);
+        var rootCommand = (RootCommandBuilderFactory != null) ? RootCommandBuilderFactory(_name).Build() : new Command(_name);
+        
         var cliBuilder = new CommandLineBuilder(rootCommand);
+        
         _cliBuilderHandlers.ForEach( x => x(cliBuilder) );
         
-        foreach (var commandBuilder in _commandTypes
-                     .Select(item => 
-                         typeof(MethodInfoBasedCommandBuilder<>)
-                         .MakeGenericType(item)
-                         )
-                     .Select(commandBuilderType => (ICommandBuilder?)Activator.CreateInstance(commandBuilderType, new object[] { rootCommand }) ?? throw new InvalidOperationException()))
+        // sub commands are added after the CommandLineBuilder actions are executed.  We config the global options in
+        // the handlers, and they need to be available to the CommandBuilders
+        foreach (var pair in _commands)
         {
+            var commandBuilder = pair.commandBuilderHandler(rootCommand);
             rootCommand.AddCommand(commandBuilder.Build());
         }
 
@@ -190,7 +227,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                 var argsRemaining = context.ParseResult.UnparsedTokens.ToArray();
 
                 var invocationContext = new InvocationContextHelper(context);
-                var hostBuilder = _hostBuilderFactory.Invoke(invocationContext);
+                var hostBuilder = _hostBuilderFactory(invocationContext);
                 
                 hostBuilder.Properties[typeof(InvocationContext)] = context;
 
@@ -284,9 +321,28 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             }
         );
 
-        var parser = cliBuilder.Build();
-        var parseResult = parser.Parse(_args);
-        return await parseResult.InvokeAsync();
+        return new CommandLineHost(cliBuilder, _args);
+    }
+
+    [Obsolete]
+    public async Task<int> RunAsync()
+    {
+        var host = Build();
+        try
+        {
+            await host.StartAsync();
+
+            await host.StopAsync();
+
+            if (host is CommandLineHost cliHost)
+                return cliHost.ExitCode;
+
+            return 0;
+        }
+        catch
+        {
+            return -1;
+        }
     }
 
     public ICommandLineHostBuilder AddYamlConfigurationFile(string path)
@@ -379,4 +435,6 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
         return this;
     }
+
+    internal Func<string, IRootCommandBuilder>? RootCommandBuilderFactory { get; set; } 
 }

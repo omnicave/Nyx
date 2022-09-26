@@ -13,8 +13,7 @@ CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 NUGET_REPO_NAME="github-georgevella"
 
-VERSION_SUFFIX="${CURRENT_BRANCH}.${SHORT_HASH}"
-
+VERSION_SUFFIX="${CURRENT_BRANCH}-${COMMIT_COUNT}.${SHORT_HASH}"
 
 rm -rf ./packages
 
@@ -22,4 +21,4 @@ dotnet clean
 dotnet build -c Release --version-suffix "${VERSION_SUFFIX}"
 dotnet pack -c Release --version-suffix "${VERSION_SUFFIX}" -o ./packages
 
-dotnet nuget push ./packages/*.nupkg --skip-duplicate -s ${NUGET_REPO_NAME}
+# dotnet nuget push ./packages/*.nupkg --skip-duplicate -s ${NUGET_REPO_NAME}

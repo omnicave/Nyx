@@ -1,17 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.Parsing;
-using System.Linq;
 using System.Linq.Expressions;
-using System.Reflection;
-using Newtonsoft.Json;
-using Nyx.Cli.Rendering;
-using Spectre.Console;
-using Spectre.Console.Rendering;
 
-namespace Nyx.Cli
+namespace Nyx.Cli.Rendering
 {
     public interface ICliRenderer
     {

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using Nyx.Cli;
+using Nyx.Cli.Rendering;
 using Spectre.Console;
 
 namespace Nyx.Examples.Console.Commands;
@@ -71,6 +72,26 @@ public class WorldCommand : ICliCommand
         }.AsEnumerable();
         _cliRenderer.Render(x);
         return Task.CompletedTask;
+    }
+}
+
+[CliCommand("arr")]
+public class ArrCommand : ICliCommand
+{
+    public Task Execute([CliOption] string[] values)
+    {
+        throw new InvalidOperationException("Error testing command");
+    }
+}
+
+[CliCommand("fil")]
+public class FileCommand : ICliCommand
+{
+    public Task Execute(FileInfo file)
+    {
+        System.Console.WriteLine(file.FullName);
+        return Task.CompletedTask;
+
     }
 }
 

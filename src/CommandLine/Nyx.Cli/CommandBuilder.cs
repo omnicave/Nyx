@@ -8,3 +8,8 @@ internal interface ICommandBuilder
 {
     Command Build();
 }
+
+internal interface IRootCommandBuilder
+{
+    Command Build();
+}
