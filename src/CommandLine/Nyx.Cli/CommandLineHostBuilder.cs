@@ -114,7 +114,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                 )
         );
 
-    private CommandLineHostBuilder(string name, string[] args)
+    protected CommandLineHostBuilder(string name, string[] args)
     {
         _name = name;
         _args = args;
