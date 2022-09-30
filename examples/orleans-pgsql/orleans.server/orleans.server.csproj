@@ -10,14 +10,14 @@
 
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-    <PackageReference Include="Microsoft.Orleans.Server" Version="3.6.2" />
-    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.2">
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
     <ProjectReference Include="..\..\..\src\Hosting\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
     <ProjectReference Include="..\orleans.shared\orleans.shared.csproj" />
   </ItemGroup>

@@ -26,8 +26,11 @@
 
 using System.Net;
 using Nyx.Orleans.Host;
+using Nyx.Orleans.Jobs;
+using Nyx.Orleans.Serialization;
 using Orleans;
 using Orleans.Configuration;
+using Orleans.Hosting;
 using Orleans.Runtime;
 using orleans.shared;
 
@@ -41,12 +44,51 @@ var client = new ClientBuilder()
     //     options.ServiceId = "Ex1";
     // })
     // Application parts: just reference one of the grain interfaces that we use
-    .ConfigureApplicationParts(parts => parts.AddApplicationPart(typeof(IHelloWorldGrain).Assembly))
+    .ConfigureApplicationParts(parts => 
+        parts
+            .AddApplicationPart(typeof(IHelloWorldGrain).Assembly)
+            .AddApplicationPart(typeof(IBackgroundJobGrain<>).Assembly)
+    )
+    .Configure<SerializationProviderOptions>(options =>
+    {
+        options.FallbackSerializationProvider = typeof(NewtonsoftJsonSerializer);
+    })
+    
     .Build();
 
 await client.Connect();
 
-var g = client.GetGrain<IManagementGrain>(0);
+var g = await client.StartJob(new TestJob());
 
-var motd = await g.GetHosts();
-motd.Select(x=> $"{x.Key.Endpoint}[{x.Key.Generation}][{x.Value}][{x.Key.IsClient}]").ToList().ForEach( Console.WriteLine);
+var exit = false;
+int i = 0;
+while (!exit)
+{
+    await Task.Delay(TimeSpan.FromSeconds(1));
+    var status = await g.GetStatus();
+    Console.WriteLine($"Status: { await g.GetStatus() } [{i}]");
+    switch (status)
+    {
+        case JobStatus.Finished:
+            exit = true;
+            break;
+        case JobStatus.Failed:
+            exit = true;
+            break;
+        default:
+            break;
+    }
+
+    i++;
+    
+    if (i == 5)
+        await g.Cancel();
+}
+
+Console.WriteLine("Exiting ... ");
+await client.Close();
+await client.DisposeAsync();
+client.Dispose();
+
+// var motd = await g.GetHosts();
+// motd.Select(x=> $"{x.Key.Endpoint}[{x.Key.Generation}][{x.Value}][{x.Key.IsClient}]").ToList().ForEach( Console.WriteLine);

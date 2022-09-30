@@ -7,6 +7,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Hosting.Internal;
+using Microsoft.Extensions.Logging;
 
 namespace Nyx.Cli;
 
@@ -26,13 +28,13 @@ public class CommandLineHost : IHost
 
     public void Dispose() { }
 
-    public async Task StartAsync(CancellationToken cancellationToken = new CancellationToken())
+    public async Task StartAsync(CancellationToken cancellationToken = new())
     {
         _exitCode = await _parseResult.InvokeAsync();
         Environment.ExitCode = _exitCode;
     }
 
-    public Task StopAsync(CancellationToken cancellationToken = new CancellationToken())
+    public Task StopAsync(CancellationToken cancellationToken = new())
     {
         return Task.CompletedTask;
     }

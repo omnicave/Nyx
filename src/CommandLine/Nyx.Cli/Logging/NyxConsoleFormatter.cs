@@ -1,4 +1,5 @@
 using System;
+using System.CommandLine.Rendering;
 using System.IO;
 using System.Text;
 using Microsoft.Extensions.Logging;
@@ -22,19 +23,20 @@ public class NyxConsoleFormatter : ConsoleFormatter
         in LogEntry<TState> logEntry, IExternalScopeProvider scopeProvider, TextWriter textWriter
         )
     {
-        var sb = new StringBuilder(80);
+        // var sb = new StringBuilder(80);
         
         var message = logEntry.Formatter?.Invoke(logEntry.State, logEntry.Exception) ?? "<Unable to format log message>";
 
         if (!string.IsNullOrEmpty(_nyxConsoleOptions.CurrentValue.TimestampFormat))
-            sb.Append($"[silver]{DateTimeOffset.UtcNow.ToString(_nyxConsoleOptions.CurrentValue.TimestampFormat)}[/] ");
+            AnsiConsole.Console.MarkupInterpolated($"[silver]{DateTimeOffset.UtcNow.ToString(_nyxConsoleOptions.CurrentValue.TimestampFormat)}[/] ");
 
-        sb.Append($"[blue]{logEntry.LogLevel}[/] ");
+        AnsiConsole.Console.MarkupInterpolated($"[blue]{logEntry.LogLevel}[/] ");
 
         if (_nyxConsoleOptions.CurrentValue.IncludeCategory)
-            sb.Append($"[grey]{logEntry.Category}[/] ");
-        sb.Append($"[white]{message}[/]");
-        AnsiConsole.Console.MarkupLine(sb.ToString());
+            AnsiConsole.Console.MarkupInterpolated($"[grey]{logEntry.Category}[/] ");
+        AnsiConsole.Console.MarkupInterpolated($"[white]{message}[/]");
+        AnsiConsole.WriteLine();
+        // AnsiConsole.Console.Markup(sb.ToString());
     }
 }
 

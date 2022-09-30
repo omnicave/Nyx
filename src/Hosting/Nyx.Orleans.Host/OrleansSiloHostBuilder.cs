@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
+using Nyx.Cli;
 using Nyx.Hosting;
 using Nyx.Orleans.Host.Db;
 using Nyx.Orleans.Serialization;
@@ -18,7 +19,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
 {
     private readonly string _clusterId;
     private readonly string _serviceId;
-    private readonly string[]? _args;
+    private readonly string[] _args;
     
     private readonly string _title;
     private readonly string _version;
@@ -26,29 +27,36 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     internal Action<HostBuilderContext, ISiloBuilder> ClusteringConfiguration = OrleansSiloHostBuilderExtensions.ConfigureOrleansForDevelopmentClustering;
     internal readonly List<Action<HostBuilderContext, ISiloBuilder>> SiloBuilderExtraConfiguration = new();
     internal Action<HostBuilderContext, ISiloBuilder> PubStoreConfiguration = (context, builder) => { };
-    //internal readonly List<Action<IServiceCollection>> HostServiceConfiguration = new();
 
-    public OrleansSiloHostBuilder(
+    public static OrleansSiloHostBuilder CreateSiloHost(string clusterId, string serviceId, string? title = null, string[]? args = null)
+    {
+        var entryAssembly = Assembly.GetEntryAssembly() 
+                            ?? throw new InvalidOperationException("Entry assembly not available.");
+
+        return new OrleansSiloHostBuilder(
+            clusterId,
+            serviceId,
+            title ?? entryAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "Orleans Host Default Name",
+            args ?? Array.Empty<string>(),
+            entryAssembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version ?? "0.1.0"
+        );
+    }
+    
+    protected OrleansSiloHostBuilder(
         string clusterId,
         string serviceId,
-        string? title = null, 
-        string[]? args = null)
+        string title, 
+        string[] args,
+        string version)
     {
         _clusterId = clusterId;
         _serviceId = serviceId;
+        _title = title;
+        _version = version;
         _args = args;
-        
-        var entryAssembly = Assembly.GetEntryAssembly() 
-                            ?? throw new InvalidOperationException("Entry assembly not available.");
-        
-        _title = title 
-                 ?? entryAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title 
-                 ?? "Orleans Host Default Name";
-        _version = entryAssembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version 
-                   ?? "0.1.0";
     }
     
-    private void SetupWebApi(string title, WebApplicationBuilder builder)
+    private void SetupWebApi(string title, WebApplicationBuilder builder, int apiPort, int healthCheckPort)
     {
         builder.Services.AddControllers()
             .AddNewtonsoftJson(options => _configureJsonSerializer(options));
@@ -89,35 +97,113 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         
         // get the current list of urls we are listening on and add '5082' to it to have the health checks respond
         // on a separate port
-        var currentUrls = builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey) ?? "http://0.0.0.0:5001";
+        var currentUrls = builder.WebHost.GetSetting(WebHostDefaults.ServerUrlsKey) ?? $"http://0.0.0.0:{apiPort}";
         builder.WebHost.UseUrls(
             currentUrls
                 .Split(';')
-                .Append("http://0.0.0.0:5081")
+                .Append($"http://0.0.0.0:{healthCheckPort}")
                 .ToArray()
         );
     }
 
-    public override IHost Build()
+    class X : IHostBuilder
     {
-        var webApplicationBuilder = _args == null ? WebApplication.CreateBuilder() : WebApplication.CreateBuilder(_args);
+        private readonly OrleansSiloHostBuilder _parent;
+        private readonly int _gatewayPort;
+        private readonly int _siloPort;
+        private readonly int _dashboardPort;
+        private readonly int _apiPort;
+        private readonly int _healthCheckPort;
+
+        public X(OrleansSiloHostBuilder parent, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
+        {
+            _parent = parent;
+            _gatewayPort = gatewayPort;
+            _siloPort = siloPort;
+            _dashboardPort = dashboardPort;
+            _apiPort = apiPort;
+            _healthCheckPort = healthCheckPort;
+        }
+
+        public IHost Build() => _parent.BuildActualHost(_gatewayPort, _siloPort, _dashboardPort, _apiPort, _healthCheckPort);
+
+        public IHostBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate) => _parent.ConfigureAppConfiguration(configureDelegate);
+
+        public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate) => _parent.ConfigureContainer(configureDelegate);
+
+        public IHostBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate) => _parent.ConfigureHostConfiguration(configureDelegate);
+
+        public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate) => _parent.ConfigureServices(configureDelegate);
+
+        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory) => _parent.UseServiceProviderFactory(factory);
+
+        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory) => _parent.UseServiceProviderFactory(factory);
+
+        public IDictionary<object, object> Properties => _parent.Properties;
+    }
+
+    protected IHost BuildActualHost(int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
+    {
+        var webApplicationBuilder = WebApplication.CreateBuilder(_args);
         
         webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
         
         ApplyHostBuilderOperations(webApplicationBuilder.Host);
         
-        SetupWebApi(_title, webApplicationBuilder);
-        SetupOrleans(_title, webApplicationBuilder.Host);
+        SetupWebApi(_title, webApplicationBuilder, apiPort, healthCheckPort);
+        SetupOrleans(webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
         
         var app = webApplicationBuilder.Build();
-        SetupAppBuilder(app.Environment, app);
-
+        SetupAppBuilder(app.Environment, app, healthCheckPort);
+        
         app.MapControllers();
-
+        
         return new OrleansHost(app);
     }
 
-    private void SetupOrleans(string title, ConfigureHostBuilder host)
+    public override IHost Build()
+    {
+        var self = this;
+        return CommandLineHostBuilder.Create($"{_clusterId}.{_serviceId}", _args)
+            .UseHostBuilderFactory(ctx =>
+            {
+                var gatewayPort = ctx.GetSingleOptionValue<int>("gatewayPort");
+                var siloPort = ctx.GetSingleOptionValue<int>("siloPort");
+                var dashboardPort = ctx.GetSingleOptionValue<int>("dashboardPort");
+                var apiPort = ctx.GetSingleOptionValue<int>("apiPort");
+                var healthCheckPort = ctx.GetSingleOptionValue<int>("healthCheckPort");
+                return new X(self, gatewayPort, siloPort, dashboardPort, apiPort, healthCheckPort);
+            })
+            .AddGlobalOption<int>("gatewayPort", 12000)
+            .AddGlobalOption<int>("siloPort", 13000)
+            .AddGlobalOption<int>("dashboardPort", 5002)
+            .AddGlobalOption<int>("apiPort", 5001)
+            .AddGlobalOption<int>("healthCheckPort", 5081)
+            .WithRootCommandHandler(async (IHost host) =>
+            {
+                var token = CancellationToken.None;
+            
+                try
+                {
+                    await host.WaitForShutdownAsync(token).ConfigureAwait(false);
+                }
+                finally
+                {
+                    if (host is IAsyncDisposable asyncDisposable)
+                    {
+                        await asyncDisposable.DisposeAsync().ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        host.Dispose();
+                    }
+            
+                }
+            })
+            .Build();
+    }
+
+    private void SetupOrleans(ConfigureHostBuilder host, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002)
     {
         host.UseOrleans( (context, siloBuilder) =>
         {
@@ -136,8 +222,8 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 .Configure<EndpointOptions>(options =>
                 {
                     options.AdvertisedIPAddress = IPAddress.Loopback;
-                    options.GatewayPort = 12000;
-                    options.SiloPort = 13000;
+                    options.GatewayPort = gatewayPort;
+                    options.SiloPort = siloPort;
                 })
                 .Configure<ClusterOptions>(options =>
                 {
@@ -146,13 +232,13 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 })
                 .UseDashboard(options =>
                     {
-                        options.Port = 5002;
+                        options.Port = dashboardPort;
                     }
                 );
         });
     }
 
-    private void SetupAppBuilder(IHostEnvironment environment, IApplicationBuilder app)
+    private void SetupAppBuilder(IHostEnvironment environment, IApplicationBuilder app, int healthCheckPort /* = 5081 */)
     {
         if (environment.IsDevelopment())
         {
@@ -166,7 +252,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         app.UseAuthorization();
 
         app.UseHealthChecks("/health",
-            5081,
+            healthCheckPort,
             new HealthCheckOptions()
             {
                 AllowCachingResponses = false,

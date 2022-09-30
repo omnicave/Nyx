@@ -14,13 +14,14 @@
     <PackageReference Include="Npgsql" Version="6.0.6" />
     <PackageReference Include="OrleansDashboard" Version="3.6.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-    <PackageReference Include="Microsoft.Orleans.Server" Version="3.6.2" />
-    <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.2" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.2" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.2" />
+    <PackageReference Include="Microsoft.Orleans.Server" Version="3.6.5" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.5" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.5" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.5" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
     <ProjectReference Include="..\Nyx.Hosting\Nyx.Hosting.csproj" />
     <ProjectReference Include="..\Nyx.Orleans\Nyx.Orleans.csproj" />
   </ItemGroup>
