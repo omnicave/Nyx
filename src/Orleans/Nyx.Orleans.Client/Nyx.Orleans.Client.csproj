@@ -4,24 +4,15 @@
     <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <RootNamespace>Nyx.Orleans</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Orleans.Client" Version="3.6.5" />
     <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" Version="3.6.5" />
-    <PackageReference Include="Microsoft.Orleans.Runtime.Abstractions" Version="3.6.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Orleans_CodeGenInputs Remove="Jobs\Models\JobErrorInformation.cs" />
-    <Orleans_CodeGenInputs Remove="Jobs\Models\JobStatus.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\..\Orleans\Nyx.Orleans.Client\Nyx.Orleans.Client.csproj" />
   </ItemGroup>
 
 </Project>
