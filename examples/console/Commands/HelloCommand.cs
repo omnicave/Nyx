@@ -55,7 +55,7 @@ public class WorldCommand : ICliCommand
         _logger = logger;
     }
     
-    public Task Execute(
+    public Task<int> Execute(
         string token
     )
     {
@@ -71,7 +71,7 @@ public class WorldCommand : ICliCommand
             }
         }.AsEnumerable();
         _cliRenderer.Render(x);
-        return Task.CompletedTask;
+        return Task.FromResult(1);
     }
 }
 

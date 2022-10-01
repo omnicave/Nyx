@@ -20,10 +20,10 @@ await CommandLineHostBuilder.Create(args)
     {
         collection.AddScoped<IRandomTextService, RandomTextService>();
     })
-    .WithRootCommandHandler((IRandomTextService randomTextService, int max) =>
-    {
-        Console.WriteLine(randomTextService.GetRandomSentence(max));
-    })
+    // .WithRootCommandHandler((IRandomTextService randomTextService, int max) =>
+    // {
+    //     Console.WriteLine(randomTextService.GetRandomSentence(max));
+    // })
     .RegisterCommandsFromThisAssembly()
     .AddOutputFormatGlobalFlag()
     .AddGlobalOption<GlobalOption>("globalone", "g")
