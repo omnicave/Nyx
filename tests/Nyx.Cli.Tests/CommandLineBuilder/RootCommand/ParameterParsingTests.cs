@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Moq;
 using Xunit;
 using Xunit.Abstractions;
@@ -35,6 +36,7 @@ public class ParameterParsingTests
                 randomTextService.Should().NotBeNull().And.BeOfType<RandomTextService>();
                 max.Should().Be(2);
             })
+            .Build()
             .RunAsync();
 
         called.Should().BeTrue();
@@ -63,6 +65,7 @@ public class ParameterParsingTests
                 collection.AddScoped<IRandomTextService, RandomTextService>();
             })
             .WithRootCommandHandler(() => mock.Object)
+            .Build()
             .RunAsync();
 
         mock.Verify();
@@ -79,16 +82,17 @@ public class ParameterParsingTests
             return Task.FromResult(1);
         }
         
-        var exitCode = await CommandLineHostBuilder.Create(Array.Empty<string>())
+        await CommandLineHostBuilder.Create(Array.Empty<string>())
             .ConfigureServices((context, collection) =>
             {
                 collection.AddScoped<IRandomTextService, RandomTextService>();
             })
             .WithRootCommandHandler(RootCommandWithGenericTask)
+            .Build()
             .RunAsync();
 
         called.Should().BeTrue();
-        exitCode.Should().Be(1);
+        Environment.ExitCode.Should().Be(1);
     }
     
     [Fact]
@@ -102,15 +106,16 @@ public class ParameterParsingTests
             return Task.FromResult(1);
         }
         
-        var exitCode = await CommandLineHostBuilder.Create(Array.Empty<string>())
+        await CommandLineHostBuilder.Create(Array.Empty<string>())
             .ConfigureServices((context, collection) =>
             {
                 collection.AddScoped<IRandomTextService, RandomTextService>();
             })
             .WithRootCommandHandler(RootCommandWithNonGenericTask)
+            .Build()
             .RunAsync();
 
         called.Should().BeTrue();
-        exitCode.Should().Be(1);
+        Environment.ExitCode.Should().Be(1);
     }
 }

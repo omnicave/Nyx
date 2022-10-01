@@ -29,32 +29,32 @@ public class ChildCommandTests
     {
     }
 
-    [Theory]
-    [InlineData(typeof(Command), "sub", true )]
-    [InlineData(typeof(CommandWithoutAttribute), nameof(CommandWithoutAttribute), true )]
-    [InlineData(typeof(CommandWithoutExecute), "sub", false )]
-    public async Task RegisterTypedCommand(Type t, string commandName, bool isSuccess)
-    {
-        var builder = CommandLineHostBuilder.Create(new string[] { })
-            .RegisterCommand(t);
-
-        var p = () => (CommandLineHost)builder.Build();
-
-        if (!isSuccess)
-        {
-            p.Should().Throw<InvalidOperationException>();
-        }
-        else
-        {
-            var host = p.Should()
-                .NotThrow().Subject;
-
-            var command = host.Configuration.RootCommand.Subcommands
-                .Should()
-                .ContainSingle()
-                .Subject;
-
-            command.Name.Should().Be(commandName.ToLower());
-        }
-    }
+    // [Theory]
+    // [InlineData(typeof(Command), "sub", true )]
+    // [InlineData(typeof(CommandWithoutAttribute), nameof(CommandWithoutAttribute), true )]
+    // [InlineData(typeof(CommandWithoutExecute), "sub", false )]
+    // public async Task RegisterTypedCommand(Type t, string commandName, bool isSuccess)
+    // {
+    //     var builder = CommandLineHostBuilder.Create(new string[] { })
+    //         .RegisterCommand(t);
+    //
+    //     var p = () => (CommandLineHost)builder.Build();
+    //
+    //     if (!isSuccess)
+    //     {
+    //         p.Should().Throw<InvalidOperationException>();
+    //     }
+    //     else
+    //     {
+    //         var host = p.Should()
+    //             .NotThrow().Subject;
+    //
+    //         var command = host.Configuration.RootCommand.Subcommands
+    //             .Should()
+    //             .ContainSingle()
+    //             .Subject;
+    //
+    //         command.Name.Should().Be(commandName.ToLower());
+    //     }
+    // }
 }

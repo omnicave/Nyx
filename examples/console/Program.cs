@@ -28,6 +28,7 @@ await CommandLineHostBuilder.Create(args)
     .AddOutputFormatGlobalFlag()
     .AddGlobalOption<GlobalOption>("globalone", "g")
     .AddGlobalOption<string>("token")
+    .Build()
     .RunAsync();
 
 public enum GlobalOption

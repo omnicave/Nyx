@@ -14,33 +14,41 @@ namespace Nyx.Cli;
 
 public class CommandLineHost : IHost
 {
-    private readonly ParseResult _parseResult;
-    private int _exitCode;
-    private readonly Parser _parser;
-
-    internal CommandLineHost(CommandLineBuilder commandLineBuilder, string[] args)
+    internal static IHost PrimaryInstance
     {
-        _parser = commandLineBuilder.Build();
-        _parseResult = _parser.Parse(args);
+        get
+        {
+            if (_primaryInstance == null)
+                throw new InvalidOperationException("Primary Host Instance not set.");
+            return _primaryInstance;
+        }
+        set => _primaryInstance = value;
+    }
 
-        Services = new ServiceCollection().BuildServiceProvider();
+    // private readonly ParseResult _parseResult;
+    // private int _exitCode;
+    // private readonly Parser _parser;
+    private static IHost? _primaryInstance = null;
+
+    internal CommandLineHost(IHost internalHost)
+    {
+        PrimaryInstance = internalHost;
     }
 
     public void Dispose() { }
 
-    public async Task StartAsync(CancellationToken cancellationToken = new())
+    public Task StartAsync(CancellationToken cancellationToken = new())
     {
-        _exitCode = await _parseResult.InvokeAsync();
-        Environment.ExitCode = _exitCode;
+        return PrimaryInstance.StartAsync(cancellationToken);
     }
 
     public Task StopAsync(CancellationToken cancellationToken = new())
     {
-        return Task.CompletedTask;
+        return PrimaryInstance.StopAsync(cancellationToken);
     }
 
-    public IServiceProvider Services { get; }
+    public IServiceProvider Services => PrimaryInstance.Services;
 
-    public int ExitCode => _exitCode;
-    public CommandLineConfiguration Configuration => _parser.Configuration;
+    // public int ExitCode => _exitCode;
+    // public CommandLineConfiguration Configuration => _parser.Configuration;
 }

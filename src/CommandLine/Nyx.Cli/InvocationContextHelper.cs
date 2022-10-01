@@ -8,17 +8,29 @@ namespace Nyx.Cli;
 
 class InvocationContextHelper : IInvocationContext
 {
-    private readonly InvocationContext _invocationContext;
+    private readonly ParseResult _parseResult;
+    private InvocationContext? _invocationContext = null;
 
-    public InvocationContextHelper(InvocationContext invocationContext )
+    public InvocationContextHelper(ParseResult parseResult)
     {
-        _invocationContext = invocationContext;
+        _parseResult = parseResult;
     }
+    
+    public void SetInvocationContext(InvocationContext invocationContext)
+    {
+        if (_invocationContext != null)
+            throw new InvalidOperationException("InvocationContext cannot be set twice.");
 
+        _invocationContext = invocationContext;
+    } 
+    
     public TValue GetSingleOptionValue<TValue>(string optionName)
     {
-        var optResults = _invocationContext.ParseResult.RootCommandResult.Children
-            .Concat(_invocationContext.ParseResult.CommandResult.Children)
+        // if (_invocationContext == null)
+        //     throw new InvalidOperationException("InvocationContext not set");
+        
+        var optResults = _parseResult.RootCommandResult.Children
+            .Concat(_parseResult.CommandResult.Children)
             .OfType<OptionResult>()
             .Where(c => c.Symbol is Option<TValue> && c.Option.Name.Equals(optionName))
             .ToArray();
@@ -32,8 +44,11 @@ class InvocationContextHelper : IInvocationContext
     
     public bool TryGetSingleOptionValue<TValue>(string optionName, out TValue? value)
     {
-        var optResults = _invocationContext.ParseResult.RootCommandResult.Children
-            .Concat(_invocationContext.ParseResult.CommandResult.Children)
+        // if (_invocationContext == null)
+        //     throw new InvalidOperationException("InvocationContext not set");
+        
+        var optResults = _parseResult.RootCommandResult.Children
+            .Concat(_parseResult.CommandResult.Children)
             .OfType<OptionResult>()
             .Where(c => c.Symbol is Option<TValue> && c.Option.Name.Equals(optionName))
             .ToArray();
@@ -53,7 +68,10 @@ class InvocationContextHelper : IInvocationContext
 
     public bool TryGetSingleOptionValue<TValue>(string optionName, out TValue value, TValue defaultValueIfNotFound)
     {
-        var optResults = _invocationContext.ParseResult.CommandResult.Children
+        // if (_invocationContext == null)
+        //     throw new InvalidOperationException("InvocationContext not set");
+        
+        var optResults = _parseResult.CommandResult.Children
             .OfType<OptionResult>()
             .Where(c => c.Symbol is Option<TValue> && c.Option.Name.Equals(optionName))
             .ToArray();
@@ -78,6 +96,9 @@ class InvocationContextHelper : IInvocationContext
 
     public void SetExitCode(int exitCode)
     {
+        if (_invocationContext == null)
+            throw new InvalidOperationException("InvocationContext not set");
+        
         _invocationContext.ExitCode = exitCode;
     }
 }
