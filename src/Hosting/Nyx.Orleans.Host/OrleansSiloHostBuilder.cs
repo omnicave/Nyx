@@ -106,7 +106,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         );
     }
 
-    class X : IHostBuilder
+    class CliSiloHostBuilderBridge : IHostBuilder
     {
         private readonly OrleansSiloHostBuilder _parent;
         private readonly int _gatewayPort;
@@ -115,7 +115,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         private readonly int _apiPort;
         private readonly int _healthCheckPort;
 
-        public X(OrleansSiloHostBuilder parent, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
+        public CliSiloHostBuilderBridge(OrleansSiloHostBuilder parent, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
         {
             _parent = parent;
             _gatewayPort = gatewayPort;
@@ -172,7 +172,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 var dashboardPort = ctx.GetSingleOptionValue<int>("dashboardPort");
                 var apiPort = ctx.GetSingleOptionValue<int>("apiPort");
                 var healthCheckPort = ctx.GetSingleOptionValue<int>("healthCheckPort");
-                return new X(self, gatewayPort, siloPort, dashboardPort, apiPort, healthCheckPort);
+                return new CliSiloHostBuilderBridge(self, gatewayPort, siloPort, dashboardPort, apiPort, healthCheckPort);
             })
             .AddGlobalOption<int>("gatewayPort", 12000)
             .AddGlobalOption<int>("siloPort", 13000)
