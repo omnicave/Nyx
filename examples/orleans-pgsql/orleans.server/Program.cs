@@ -14,4 +14,4 @@ builder.ConfigureForPostgresClustering(
 
 var host = builder.Build();
 
-await host.StartAsync();
+await host.RunAsync();

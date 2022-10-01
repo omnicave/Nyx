@@ -147,17 +147,17 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         var webApplicationBuilder = WebApplication.CreateBuilder(_args);
         
         webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
-        
-        ApplyHostBuilderOperations(webApplicationBuilder.Host);
-        
+
         SetupWebApi(_title, webApplicationBuilder, apiPort, healthCheckPort);
         SetupOrleans(webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
+
+        ApplyHostBuilderOperations(webApplicationBuilder.Host);
         
         var app = webApplicationBuilder.Build();
         SetupAppBuilder(app.Environment, app, healthCheckPort);
-        
+
         app.MapControllers();
-        
+
         return new OrleansHost(app);
     }
 
@@ -181,24 +181,18 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
             .AddGlobalOption<int>("healthCheckPort", 5081)
             .WithRootCommandHandler(async (IHost host) =>
             {
-                var token = CancellationToken.None;
-            
-                try
-                {
-                    await host.WaitForShutdownAsync(token).ConfigureAwait(false);
-                }
-                finally
-                {
-                    if (host is IAsyncDisposable asyncDisposable)
-                    {
-                        await asyncDisposable.DisposeAsync().ConfigureAwait(false);
-                    }
-                    else
-                    {
-                        host.Dispose();
-                    }
-            
-                }
+                var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+
+                var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+                applicationLifetime.ApplicationStopping
+                    .Register(obj =>
+                        {
+                            var tcs = (TaskCompletionSource<object>)obj;
+                            tcs.TrySetResult(null);
+                        },
+                        waitForStop);
+                //
+                await waitForStop.Task;
             })
             .Build();
     }
