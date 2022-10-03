@@ -2,7 +2,7 @@ using Orleans;
 
 namespace Nyx.Orleans.Jobs;
 
-public interface IBackgroundJobStatusGrain : IGrainWithGuidKey
+public interface IBackgroundJobInformationGrain : IGrainWithGuidKey
 {
     Task SetJobDetails(object details);
     Task<object> GetJobDetails();

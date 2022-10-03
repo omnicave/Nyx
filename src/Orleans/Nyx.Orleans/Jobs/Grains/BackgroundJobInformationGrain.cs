@@ -4,16 +4,18 @@ using Orleans.Runtime;
 
 namespace Nyx.Orleans.Jobs.Grains;
 
-public class BackgroundJobStatusGrain : Grain, IBackgroundJobStatusGrain
+public class BackgroundJobInformationGrain : Grain, IBackgroundJobInformationGrain
 {
     private readonly IPersistentState<BackgroundJobState> _jobState;
 
-    public BackgroundJobStatusGrain(
+    public BackgroundJobInformationGrain(
         [PersistentState("jobState", Constants.NyxInternalStorageName)] IPersistentState<BackgroundJobState> jobState
     )
     {
         _jobState = jobState;
     }
+
+    IBackgroundJobIndexGrain GetIndexGrain() => GrainFactory.GetGrain<IBackgroundJobIndexGrain>(Guid.Empty);
 
     public override async Task OnActivateAsync()
     {
@@ -28,8 +30,7 @@ public class BackgroundJobStatusGrain : Grain, IBackgroundJobStatusGrain
             await _jobState.WriteStateAsync();
         }
         
-        var managementGrain = GrainFactory.GetGrain<IBackgroundJobManagementGrain>(Guid.Empty);
-        await managementGrain.RegisterJobWithId(this.GetPrimaryKey());
+        await GetIndexGrain().RegisterJobWithId(this.GetPrimaryKey());
 
         await base.OnActivateAsync();
     }
@@ -55,9 +56,7 @@ public class BackgroundJobStatusGrain : Grain, IBackgroundJobStatusGrain
         var prev = _jobState.State.Status;
         _jobState.State.Status = status;
         await _jobState.WriteStateAsync();
-
-        var managementGrain = GrainFactory.GetGrain<IBackgroundJobManagementGrain>(Guid.Empty);
-        await managementGrain.UpdateJobStatus(this.GetPrimaryKey(), status);
+        await GetIndexGrain().UpdateJobStatus(this.GetPrimaryKey(), status);
     }
 
     public Task SetJobErrorInformation(JobErrorInformation errorInformation)
