@@ -17,19 +17,14 @@ public abstract class BackgroundJobGrain<TJobDetails> : Grain, IBackgroundJobGra
     private CancellationTokenSource? _cancellationTokenSource = null;
     private Task? _task = null;
     private IServiceScope? _scope = null;
-
-    public Task SetJobDetails(TJobDetails details)
-    {
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
-        return jobStatusGrain.SetJobDetails(details);
-    }
+    private IDisposable? _cleanupTimer = null;
 
     public async Task Start()
     {
         if (_task != null)
             throw new InvalidOperationException("Cannot start a job that's already running.");
 
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
+        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobInformationGrain>(this.GetPrimaryKey());
         if ((await jobStatusGrain.GetJobDetails()) is not TJobDetails details)
             throw new InvalidOperationException("Retrieved job details but they are not of the correct type.");
         
@@ -66,44 +61,58 @@ public abstract class BackgroundJobGrain<TJobDetails> : Grain, IBackgroundJobGra
         _cancellationTokenSource.Cancel();
     }
 
-    public Task<JobStatus> GetStatus()
+    public Task Cleanup()
     {
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
-        return jobStatusGrain.GetJobStatus();
-    }
+        if (_task == null) 
+            return Task.CompletedTask;
+        
+        switch (_task?.Status)
+        {
+            case TaskStatus.Canceled:
+            case TaskStatus.RanToCompletion:
+            case TaskStatus.Faulted:
+                _scope?.Dispose();
+                _task.Dispose();
+                _cancellationTokenSource?.Dispose();
+                    
+                _cleanupTimer?.Dispose();
+                    
+                _scope = null;
+                _task = null;
+                _cancellationTokenSource = null;
+                _cleanupTimer = null;
+                
+                // ask the orleans runtime to deactivate us now, we ain't needed anymore
+                DeactivateOnIdle();
+                break;
+        }
 
-    public Task<JobErrorInformation> GetErrorInformation()
-    {
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
-        return jobStatusGrain.GetJobErrorInformation();
+        return Task.CompletedTask;
     }
 
     private async Task Notify(JobStatus status)
     {
         Console.WriteLine($"Setting status '{status}'");
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
+        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobInformationGrain>(this.GetPrimaryKey());
         await jobStatusGrain.SetJobStatus(status);
 
         switch (status)
         {
             case JobStatus.Finished:
             case JobStatus.Failed:
-                _scope?.Dispose();
-                _task?.Dispose();
-                _cancellationTokenSource?.Dispose();
 
-                _scope = null;
-                _task = null;
-                _cancellationTokenSource = null;
+                _cleanupTimer = RegisterTimer(CleanupInvoker, null, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1));
                 
-                this.DeactivateOnIdle();
+
                 break;
         }
     }
 
+    private Task CleanupInvoker(object arg) => Task.Run(() => this.AsReference<IBackgroundJobGrain<TJobDetails>>().Cleanup());
+
     private async Task SetErrorInformation(JobErrorInformation errorInformation)
     {
-        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobStatusGrain>(this.GetPrimaryKey());
+        var jobStatusGrain = GrainFactory.GetGrain<IBackgroundJobInformationGrain>(this.GetPrimaryKey());
         await jobStatusGrain.SetJobErrorInformation(errorInformation);
     }
     

@@ -2,5 +2,5 @@ namespace Nyx.Orleans.Jobs.State;
 
 public class BackgroundJobIndexState
 {
-    public Dictionary<Guid, JobStatus> JobStatus { get; } = new();
+    public List<Guid> BucketBrainIds { get; } = new();
 }

@@ -4,42 +4,35 @@ using Orleans.Runtime;
 
 namespace Nyx.Orleans.Jobs.Grains;
 
-public class BackgroundJobManagementGrain : Grain, IBackgroundJobManagementGrain
+public class BackgroundJobIndexGrain : Grain, IBackgroundJobIndexGrain
 {
-    private readonly IPersistentState<BackgroundJobManagementState> _managementState;
+    private readonly IPersistentState<BackgroundJobIndexState> _indexState;
 
-    public BackgroundJobManagementGrain(
-        [PersistentState("nyx_jobs_management_grain", Constants.NyxInternalStorageName)] IPersistentState<BackgroundJobManagementState> managementState
-        )
+    public BackgroundJobIndexGrain(
+        [PersistentState("nyx_background_jobs_idx_grain", Constants.NyxInternalStorageName)] IPersistentState<BackgroundJobIndexState> indexState
+    )
     {
-        _managementState = managementState;
+        _indexState = indexState;
     }
-
     public override async Task OnActivateAsync()
     {
-        if (_managementState.State.IndexGrainIds.Count == 0)
+        if (_indexState.State.BucketBrainIds.Count == 0)
         {
-            _managementState.State.IndexGrainIds
+            _indexState.State.BucketBrainIds
                 .AddRange( Enumerable.Range(0, 100).Select( _ => Guid.NewGuid()) );
 
-            await _managementState.WriteStateAsync();
+            await _indexState.WriteStateAsync();
         }
         
         await base.OnActivateAsync();
     }
-
-    private IBackgroundJobIndexGrain GetIndexGrain(Guid jobId)
+    
+    private IBackgroundJobIndexBucketGrain GetIndexGrain(Guid jobId)
     {
-        var index = jobId.GetHashCode() % (_managementState.State.IndexGrainIds.Count - 1);
-        var id = _managementState.State.IndexGrainIds[Math.Abs(index)];
-
-        return GrainFactory.GetGrain<IBackgroundJobIndexGrain>(id);
+        var index = jobId.GetHashCode() % (_indexState.State.BucketBrainIds.Count - 1);
+        var id = _indexState.State.BucketBrainIds[Math.Abs(index)];
+        return GrainFactory.GetGrain<IBackgroundJobIndexBucketGrain>(id);
     }
-
-    // private IBackgroundJobStatusGrain GetJobStatusGrain(Guid jobId)
-    // {
-    //     return GrainFactory.GetGrain<IBackgroundJobStatusGrain>(jobId);
-    // }
 
     public Task RegisterJobWithId(Guid jobId)
     {
@@ -52,4 +45,9 @@ public class BackgroundJobManagementGrain : Grain, IBackgroundJobManagementGrain
         var grain = GetIndexGrain(jobId);
         return grain.UpdateJobStatus(jobId, jobStatus);
     }
+}
+
+public class BackgroundJobManagementGrain : Grain, IBackgroundJobManagementGrain
+{
+    
 }
