@@ -19,6 +19,7 @@
     <Orleans_CodeGenInputs Remove="Jobs\Models\JobErrorInformation.cs" />
     <Orleans_CodeGenInputs Remove="Jobs\Models\JobStatus.cs" />
     <Orleans_CodeGenInputs Remove="Jobs\Services\IBackgroundJobIndexGrainResolver.cs" />
+    <Orleans_CodeGenInputs Remove="Serialization\NewtonsoftJsonSerializer.cs" />
   </ItemGroup>
 
   <ItemGroup>

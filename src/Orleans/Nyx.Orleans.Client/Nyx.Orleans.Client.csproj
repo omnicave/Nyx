@@ -13,6 +13,19 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    
+  </ItemGroup>
+
+  <ItemGroup>
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\Constants.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsBatchContainer.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsClientPersistentStreamConfigurator.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsJetStreamAdapterFactory.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsJetStreamClusterClientConfigurator.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsNamingConventions.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsQueueAdapter.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsReceiver.cs" />
+    <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsStreamingOptions.cs" />
   </ItemGroup>
 
 </Project>

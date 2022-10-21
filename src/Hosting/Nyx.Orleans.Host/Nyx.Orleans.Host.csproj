@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
+    <ProjectReference Include="..\..\Orleans\Nyx.Orleans.Nats\Nyx.Orleans.Nats.csproj" />
     <ProjectReference Include="..\Nyx.Hosting\Nyx.Hosting.csproj" />
     <ProjectReference Include="..\..\Orleans\Nyx.Orleans\Nyx.Orleans.csproj" />
   </ItemGroup>

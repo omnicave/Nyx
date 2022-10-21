@@ -163,6 +163,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
 
     public override IHost Build()
     {
+        var rng = new Random();
         var self = this;
         return CommandLineHostBuilder.Create($"{_clusterId}.{_serviceId}", _args)
             .UseHostBuilderFactory(ctx =>
@@ -174,8 +175,8 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 var healthCheckPort = ctx.GetSingleOptionValue<int>("healthCheckPort");
                 return new CliSiloHostBuilderBridge(self, gatewayPort, siloPort, dashboardPort, apiPort, healthCheckPort);
             })
-            .AddGlobalOption<int>("gatewayPort", 12000)
-            .AddGlobalOption<int>("siloPort", 13000)
+            .AddGlobalOption<int>("gatewayPort", 12000+rng.Next(999))
+            .AddGlobalOption<int>("siloPort", 13000+rng.Next(999))
             .AddGlobalOption<int>("dashboardPort", 5002)
             .AddGlobalOption<int>("apiPort", 5001)
             .AddGlobalOption<int>("healthCheckPort", 5081)
@@ -211,7 +212,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
             siloBuilder
                 .Configure<SerializationProviderOptions>(options =>
                 {
-                    options.FallbackSerializationProvider = typeof(NewtonsoftJsonSerializer);
+                    options.FallbackSerializationProvider = typeof(NewtonsoftJsonExternalSerializer);
                 })
                 .Configure<EndpointOptions>(options =>
                 {
