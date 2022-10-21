@@ -1,4 +1,5 @@
 using Nyx.Orleans.Host.Db;
+using Nyx.Orleans.Serialization;
 using Orleans.Hosting;
 using Orleans.Runtime.Development;
 using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
@@ -53,6 +54,9 @@ public static class OrleansSiloHostBuilderExtensions
                 {
                     options.ConnectionString = connectionString;
                     options.Invariant = "Npgsql";
+                    options.UseJsonFormat = true;
+                    options.ConfigureJsonSerializerSettings = 
+                        NewtonsoftJsonSerializerSettingsBuilder.ConfigureJsonSerializerSettingsWithDefaults;
                 }
             )
         );
@@ -74,6 +78,9 @@ public static class OrleansSiloHostBuilderExtensions
                         options.ConnectionString = connectionString;
                         options.Invariant = "Npgsql";
                         options.UseJsonFormat = true;
+                        options.ConfigureJsonSerializerSettings = 
+                            NewtonsoftJsonSerializerSettingsBuilder.ConfigureJsonSerializerSettingsWithDefaults;
+                        
                     }
                 )
             )
