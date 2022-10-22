@@ -21,8 +21,7 @@ internal class NatsReceiver : IQueueAdapterReceiver
     private IJetStream? _jetStreamContext;
     private IJetStreamPullSubscription? _subscription;
     private readonly NatsStreamingOptions _options;
-
-    private ConcurrentDictionary<Guid, Msg> _natsMessageStore = new();
+    private readonly ConcurrentDictionary<Guid, Msg> _natsMessageStore = new();
 
 
     internal record NatsBatchContainerKey(Guid StreamId, string StreamNamespace);
