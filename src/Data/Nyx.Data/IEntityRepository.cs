@@ -6,6 +6,32 @@ using System.Threading.Tasks;
 
 namespace Nyx.Data
 {
+    public interface IEntityRepository
+    {
+        Task<T> Add<T>(T item) where T : class;
+        ValueTask<T?> Find<TKey, T>(TKey id) where T : class;
+        Task<int> Count<T>() where T : class;
+        Task<int> Count<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class;
+        Task<IEnumerable<T>> Query<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class;
+        Task<IEnumerable<TResult>> Query<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter) 
+            where T : class;
+        Task<IEnumerable<T>> QueryAll<T>() where T : class;
+        Task<T> QuerySingle<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class;
+        Task<TResult> QuerySingle<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter) 
+            where T : class;
+        Task<T?> QuerySingleOrDefault<T>(Func<IQueryable<T>, IQueryable<T>> filter) 
+            where T : class;
+        Task<TResult?> QuerySingleOrDefault<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter)
+            where T : class;
+
+        Task<T> Update<T>(T item)
+            where T : class;
+        Task Upsert<T>(T item, Expression<Func<T, object>> match, Expression<Func<T, T>> updateIfMatching)
+            where T : class;
+        Task Delete<T>(T item)
+            where T : class;
+    }
+    
     public interface IEntityRepository<T>
         where T: class
     {

@@ -1,250 +1,98 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace Nyx.Data.Internal
+namespace Nyx.Data.Internal;
+
+public class EntityRepository : IEntityRepository, IDisposable
 {
-    public class EntityRepository<T> : IEntityRepository<T>
-        where T : class
+    private readonly IDataOperationContext _context;
+    private readonly IServiceProvider _serviceProvider;
+    private readonly ConcurrentDictionary<Type, object> _entityRepositoryMap = new();
+
+    public EntityRepository(IDataOperationContext context, IServiceProvider serviceProvider)
     {
-        private readonly IDataOperationContextFactory _dataOperationContextFactory;
+        _context = context;
+        _serviceProvider = serviceProvider;
+    }
 
-        public EntityRepository(IDataOperationContextFactory dataOperationContextFactory)
-        {
-            _dataOperationContextFactory = dataOperationContextFactory;
-        }
+    protected IEntityRepository<T> GetRepository<T>() where T : class
+    {
+        var i = _entityRepositoryMap.GetOrAdd(
+            typeof(T), 
+            static (type, sp) => sp.GetRequiredService<IEntityRepository<T>>(),
+            _serviceProvider
+        );
 
-        public async Task<T> Add(T item)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Add(item, context);
-        }
+        return (IEntityRepository<T>)i;
+    }
 
-        public async Task<T> Add(T item, IDataOperationContext doc)
-        {
-            await using (doc.BeginChangeOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var entity = await dbSet.AddAsync(item);
-                return entity.Entity ?? throw new InvalidOperationException();
-            }
-        }
+    public Task<T> Add<T>(T item) where T : class 
+        => GetRepository<T>().Add(item, _context);
 
-        public async ValueTask<T?> Find<TKey>(TKey id)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Find(id, context);
-        }
+    public ValueTask<T?> Find<TKey, T>(TKey id) where T : class 
+        => GetRepository<T>().Find(id, _context);
 
-        public async ValueTask<T?> Find<TKey>(TKey id, IDataOperationContext doc)
-        {
-            if (id == null) 
-                throw new ArgumentNullException(nameof(id));
-            
-            await using (doc.BeginFetchOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-            
-                // ReSharper disable once HeapView.PossibleBoxingAllocation
-                var result = await dbSet.FindAsync(new object[] { id }, CancellationToken.None);
-                return result;    
-            }
-        }
+    public Task<int> Count<T>()  where T : class => GetRepository<T>().Count(_context);
 
-        public async Task<int> Count()
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Count(context);
-        }
+    public Task<int> Count<T>(Func<IQueryable<T>, IQueryable<T>> filter)  where T : class => GetRepository<T>().Count(filter, _context);
 
-        public async Task<int> Count(Func<IQueryable<T>, IQueryable<T>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Count(filter, context);
-        }
+    public Task<IEnumerable<T>> Query<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class
+    {
+        return GetRepository<T>().Query(filter, _context);
+    }
 
-        public async Task<int> Count(IDataOperationContext context)
-        {
-            await using (context.BeginFetchOperation())
-            {
-                var dbSet = context.GetDbSet<T>();
-                return await dbSet.CountAsync();
-            }
-        }
+    public Task<IEnumerable<TResult>> Query<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter) where T : class
+    {
+        return GetRepository<T>().Query<TResult>(filter, _context);
+    }
 
-        public async Task<int> Count(Func<IQueryable<T>, IQueryable<T>> filter, IDataOperationContext context)
-        {
-            await using (context.BeginFetchOperation())
-            {
-                var dbSet = context.GetDbSet<T>();
-                var query = filter(dbSet.AsQueryable());
-                return await query.CountAsync();
-            }
-        }
+    public Task<IEnumerable<T>> QueryAll<T>() where T : class
+    {
+        return GetRepository<T>().QueryAll(_context);
+    }
 
-        public async Task<T> Update(T item)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Update(item, context);
-        }
+    public Task<T> QuerySingle<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class
+    {
+        return GetRepository<T>().QuerySingle(filter, _context);
+    }
 
-        public async Task<T> Update(T item, IDataOperationContext doc)
-        {
-            await using (doc.BeginChangeOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var entity = dbSet.Update(item);
-                return entity?.Entity ?? throw new InvalidOperationException();    
-            }
-        }
+    public Task<TResult> QuerySingle<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter) where T : class
+    {
+        return GetRepository<T>().QuerySingle<TResult>(filter, _context);
+    }
 
-        public async Task Upsert(T item, Expression<Func<T, object>> match, Expression<Func<T, T>> updateIfMatching)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            await Upsert(item, match, updateIfMatching, context);
-        }
+    public Task<T?> QuerySingleOrDefault<T>(Func<IQueryable<T>, IQueryable<T>> filter) where T : class
+    {
+        return GetRepository<T>().QuerySingleOrDefault(filter, _context);
+    }
 
-        public async Task Upsert(T item, Expression<Func<T, object>> match, Expression<Func<T, T>> updateIfMatching,  IDataOperationContext doc)
-        {
-            await using (doc.BeginChangeOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                await dbSet.Upsert(item).On(match).WhenMatched(updateIfMatching).RunAsync();    
-            }
-            
-        }
+    public Task<TResult?> QuerySingleOrDefault<T, TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter) where T : class
+    {
+        return GetRepository<T>().QuerySingleOrDefault<TResult>(filter, _context);
+    }
 
-        public async Task<IEnumerable<T>> QueryAll()
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await QueryAll(context);
-        }
+    public Task<T> Update<T>(T item) where T : class
+    {
+        return GetRepository<T>().Update(item, _context);
+    }
 
-        public async Task<IEnumerable<T>> QueryAll(IDataOperationContext context)
-        {
-            await using (context.BeginFetchOperation())
-            {
-                var dbSet = context.GetDbSet<T>();
-                return await dbSet.ToArrayAsync();
-            }
-        }
+    public Task Upsert<T>(T item, Expression<Func<T, object>> match, Expression<Func<T, T>> updateIfMatching) where T : class
+    {
+        return GetRepository<T>().Upsert(item, match, updateIfMatching, _context);
+    }
 
-        public async Task<IEnumerable<T>> Query(Func<IQueryable<T>, IQueryable<T>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Query(filter, context);
-        }
-        
-        public async Task<IEnumerable<T>> Query( Func<IQueryable<T>, IQueryable<T>> filter, IDataOperationContext context )
-        {
-            await using (context.BeginFetchOperation())
-            {
-                var dbSet = context.GetDbSet<T>();
-                var query = filter(dbSet.AsQueryable());
-                return await query.ToArrayAsync();
-            }
-        }
+    public Task Delete<T>(T item) where T : class
+    {
+        return GetRepository<T>().Delete(item, _context);
+    }
 
-        public async Task<IEnumerable<TResult>> Query<TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await Query(filter, context);
-        }
-
-        public async Task<IEnumerable<TResult>> Query<TResult>( Func<IQueryable<T>, IQueryable<TResult>> filter, IDataOperationContext context )
-        {
-            await using (context.BeginFetchOperation())
-            {
-                var dbSet = context.GetDbSet<T>();
-                var query = dbSet.AsQueryable();
-                var result = filter(query);
-                return await result.ToArrayAsync();
-            }
-        }
-
-        public async Task<T> QuerySingle(Func<IQueryable<T>, IQueryable<T>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await QuerySingle(filter, context);
-        }
-
-        public async Task<T> QuerySingle(Func<IQueryable<T>, IQueryable<T>> filter, IDataOperationContext doc)
-        {
-            await using (doc.BeginFetchOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var filtered = filter(dbSet.AsQueryable());
-                return await filtered.FirstAsync();
-            }
-        }
-
-        public async Task<TResult> QuerySingle<TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await QuerySingle(filter, context);
-        }
-
-        public async Task<TResult> QuerySingle<TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter, IDataOperationContext doc)
-        {
-            await using (doc.BeginFetchOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var filtered = filter(dbSet.AsQueryable());
-                return await filtered.FirstAsync();
-            }
-        }
-
-        public async Task<T?> QuerySingleOrDefault(Func<IQueryable<T>, IQueryable<T>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await QuerySingleOrDefault(filter, context);
-        }
-
-        public async Task<T?> QuerySingleOrDefault(Func<IQueryable<T>, IQueryable<T>> filter, IDataOperationContext doc)
-        {
-            await using (doc.BeginFetchOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var filtered = filter(dbSet.AsQueryable());
-                return await filtered.FirstOrDefaultAsync();
-            }
-        }
-
-        public async Task<TResult?> QuerySingleOrDefault<TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            return await QuerySingleOrDefault(filter, context);
-        }
-
-        public async Task<TResult?> QuerySingleOrDefault<TResult>(Func<IQueryable<T>, IQueryable<TResult>> filter, IDataOperationContext doc)
-        {
-            await using (doc.BeginFetchOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                var filtered = filter(dbSet.AsQueryable());
-                return await filtered.FirstOrDefaultAsync();
-            }
-        }
-
-        public async Task Delete(T item)
-        {
-            await using var context = _dataOperationContextFactory.GetSimpleOperationContext();
-            await Delete(item, context);
-        }
-        
-        public async Task Delete(T item, IDataOperationContext doc)
-        {
-            await using (doc.BeginChangeOperation())
-            {
-                var dbSet = doc.GetDbSet<T>();
-                dbSet.Remove(item);
-            }
-            
-        }
+    public void Dispose()
+    {
+        _entityRepositoryMap.Clear();
     }
 }
