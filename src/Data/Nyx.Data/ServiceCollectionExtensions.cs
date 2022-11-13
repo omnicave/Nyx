@@ -46,7 +46,7 @@ namespace Microsoft.Extensions.DependencyInjection
 
             serviceCollection.AddSingleton<IDataOperationContextFactory, DataOperationContextFactory>();
             serviceCollection.Add(
-                new ServiceDescriptor(typeof(IEntityRepository<>), typeof(EntityRepository<>), ServiceLifetime.Scoped)
+                new ServiceDescriptor(typeof(IEntityRepository<>), typeof(TypedEntityRepository<>), ServiceLifetime.Scoped)
                 );
 
             DbContextOptionsBuilder Defaults(DbContextOptionsBuilder builder) => builder
