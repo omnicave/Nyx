@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net7.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+<!--    <KubeOpsSkipDockerfile>true</KubeOpsSkipDockerfile>-->
+<!--    <KubeOpsSkipCrds>true</KubeOpsSkipCrds>-->
+<!--    <KubeOpsSkipRbac>true</KubeOpsSkipRbac>-->
+<!--    <KubeOpsSkipOperator>true</KubeOpsSkipOperator>-->
+<!--    <KubeOpsSkipInstaller>true</KubeOpsSkipInstaller>-->
+  </PropertyGroup>
+
+  <ItemGroup>
+<!--    <PackageReference Include="KubeOps" Version="1.0.0-master.1" />-->
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.0" />
+    <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.5">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Scriban" Version="5.5.1" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Hosting\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
+    <ProjectReference Include="..\..\src\Nyx.Utils\Nyx.Utils.csproj" />
+    <ProjectReference Include="..\..\thirdparties\dotnet-operator-sdk\src\KubeOps\KubeOps.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="templates\homar.yaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="templates\homer.yaml" />
+    <EmbeddedResource Include="templates\homer.yaml" />
+  </ItemGroup>
+
+</Project>

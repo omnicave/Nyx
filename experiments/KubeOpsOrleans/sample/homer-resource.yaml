@@ -1,0 +1,8 @@
+apiVersion: nyx.io/v1beta
+kind: homer
+metadata:
+  name: homer
+spec:
+  isDefault: true
+  settings:
+    title: test-nyx
