@@ -42,6 +42,24 @@ class InvocationContextHelper : IInvocationContext
         return opt.GetValueOrDefault<TValue>() ?? throw new ArgumentOutOfRangeException($"Option '{opt.Option.Name}' does not have a value.");
     }
     
+    public TValue GetSingleOptionValue<TValue>(string optionName, TValue defaultValue)
+    {
+        // if (_invocationContext == null)
+        //     throw new InvalidOperationException("InvocationContext not set");
+        
+        var optResults = _parseResult.RootCommandResult.Children
+            .Concat(_parseResult.CommandResult.Children)
+            .OfType<OptionResult>()
+            .Where(c => c.Symbol is Option<TValue> && c.Option.Name.Equals(optionName))
+            .ToArray();
+
+        if (optResults.Length == 0)
+            return defaultValue;
+
+        var opt = optResults.First();
+        return opt.GetValueOrDefault<TValue>() ?? throw new ArgumentOutOfRangeException($"Option '{opt.Option.Name}' does not have a value.");
+    }
+    
     public bool TryGetSingleOptionValue<TValue>(string optionName, out TValue? value)
     {
         // if (_invocationContext == null)
@@ -106,6 +124,7 @@ class InvocationContextHelper : IInvocationContext
 public interface IInvocationContext
 {
     TValue GetSingleOptionValue<TValue>(string optionName);
+    TValue GetSingleOptionValue<TValue>(string optionName, TValue defaultValue);
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue? value);
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue value, TValue defaultValueIfNotFound);
 
