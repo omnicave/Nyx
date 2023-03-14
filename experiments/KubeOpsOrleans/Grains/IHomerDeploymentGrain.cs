@@ -3,6 +3,7 @@ using System.Text;
 using k8s.Models;
 using KubeOps.KubernetesClient;
 using KubeOpsOrleans.Crd;
+using KubeOpsOrleans.Models;
 using KubeOpsOrleans.Services;
 using Orleans;
 
@@ -15,13 +16,15 @@ public interface IHomerDeploymentGrain : IGrainWithStringKey
     Task Refresh();
     Task<bool> IsSynced();
     Task Sync();
+    Task AddOrUpdateService(Service service);
 }
 
 class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
 {
     private readonly IKubernetesClient _kubernetes;
     private readonly IHomerConfigFileGenerator _homerConfigFileGenerator;
-    private readonly List<V1Ingress> _ingresses = new();
+    //private readonly List<V1Ingress> _ingresses = new();
+    private readonly Dictionary<string, Service> _services = new();
     private HomerV1Beta? _homerResource;
     private V1Deployment? _currentDeployment;
     private V1ConfigMap? _currentConfigmap;
@@ -58,12 +61,6 @@ class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
         _currentConfigmap = await _kubernetes.Get<V1ConfigMap>( _homerResource.Name(), _homerResource.Namespace());
         _currentDeployment = await _kubernetes.Get<V1Deployment>(_homerResource.Name(), _homerResource.Namespace());
 
-        var remoteIngresses =
-            (await _kubernetes.List<V1Ingress>(_homerResource.Namespace())).ToDictionary(x => x.Name());
-        
-        _ingresses.Clear();
-        _ingresses.AddRange(remoteIngresses.Values);
-
         await RebuildConfigFile();
     }
 
@@ -72,7 +69,7 @@ class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
         if (_homerResource == null)
             throw new InvalidOperationException("Homer Resource Required");
         
-        await using var templateStream = await _homerConfigFileGenerator.RenderTemplate(_homerResource, _ingresses);
+        await using var templateStream = await _homerConfigFileGenerator.RenderTemplate(_homerResource, _services.Values);
         using var reader = new StreamReader(templateStream);
         _configFile = await reader.ReadToEndAsync();
         _configFileHash = HashWithSha256(_configFile);
@@ -92,8 +89,19 @@ class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
         }
 
         var currentConfigFileHash = HashWithSha256(_currentConfigmap.Data["config.yml"]);
-        if (currentConfigFileHash != HashWithSha256(_configFile))
+        if (currentConfigFileHash != _configFileHash)
             return Task.FromResult(false);
+
+        if (_currentDeployment.Spec.Template.Metadata.Annotations?.TryGetValue("experiment.nyx.app/config-hash",
+                out var podConfigHash) ?? false)
+        {
+            if (!_configFileHash.Equals(podConfigHash))
+                return Task.FromResult(false);
+        }
+        else
+        {
+            return Task.FromResult(false);
+        }
 
         return Task.FromResult(true);
     }
@@ -114,6 +122,12 @@ class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
         _currentDeployment = (_currentDeployment == null)
             ? await _kubernetes.Create(BuildHomerDeploymentManifest(_homerResource))
             : await _kubernetes.Update(BuildHomerDeploymentManifest(_homerResource, _currentDeployment));
+    }
+
+    public Task AddOrUpdateService(Service service)
+    {
+        _services[service.Name.ToLower()] = service;
+        return RebuildConfigFile();
     }
 
     private V1ConfigMap BuildHomerConfigmap(HomerV1Beta homer)
@@ -160,6 +174,10 @@ class HomerDeploymentGrain : Grain, IHomerDeploymentGrain
             {
                 Metadata = new()
                 {
+                    Annotations = new Dictionary<string, string>()
+                    {
+                        { "experiment.nyx.app/config-hash", _configFileHash ?? string.Empty }
+                    },
                     Labels = new Dictionary<string, string>()
                     {
                         { "experiment.nyx.app/instance", homer.Name() },
