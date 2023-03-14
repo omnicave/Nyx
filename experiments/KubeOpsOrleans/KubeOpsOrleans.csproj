@@ -12,7 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-<!--    <PackageReference Include="KubeOps" Version="1.0.0-master.1" />-->
+    <PackageReference Include="KubeOps" Version="7.0.4" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="7.0.0" />
     <PackageReference Include="Microsoft.Orleans.CodeGenerator.MSBuild" Version="3.6.5">
       <PrivateAssets>all</PrivateAssets>
@@ -25,7 +25,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hosting\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
     <ProjectReference Include="..\..\src\Nyx.Utils\Nyx.Utils.csproj" />
-    <ProjectReference Include="..\..\thirdparties\dotnet-operator-sdk\src\KubeOps\KubeOps.csproj" />
   </ItemGroup>
 
   <ItemGroup>

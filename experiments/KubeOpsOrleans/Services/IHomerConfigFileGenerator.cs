@@ -13,7 +13,10 @@ namespace KubeOpsOrleans.Services;
 public interface IHomerConfigFileGenerator
 {
     Task<Stream> RenderTemplate(HomerV1Beta homerResource, IEnumerable<V1Ingress> ingresses);
+    Task<Stream> RenderTemplate(HomerV1Beta homerResource, IEnumerable<Service> services);
     Task<Stream> RenderTemplate(HomerSettings homerSettings, IEnumerable<V1Ingress> ingresses);
+    Task<Stream> RenderTemplate(HomerSettings homerSettings, IEnumerable<Service> services);
+    
 }
 
 class HomerConfigFileGenerator : IHomerConfigFileGenerator
@@ -26,8 +29,22 @@ class HomerConfigFileGenerator : IHomerConfigFileGenerator
     {
         return RenderTemplate(homerResource.Spec.Settings, ingresses);
     }
-    
-    public async Task<Stream> RenderTemplate(HomerSettings homerSettings, IEnumerable<V1Ingress> ingresses)
+
+    public Task<Stream> RenderTemplate(HomerV1Beta homerResource, IEnumerable<Service> services)
+    {
+        return RenderTemplate(homerResource.Spec.Settings, services);
+    }
+
+    public Task<Stream> RenderTemplate(HomerSettings homerSettings, IEnumerable<V1Ingress> ingresses)
+    {
+        return RenderTemplate(homerSettings, 
+            ingresses
+            .Select(GetServiceFromIngress)
+            .AsValueCollection()
+        );
+    }
+
+    public async Task<Stream> RenderTemplate(HomerSettings homerSettings, IEnumerable<Service> services)
     {
         using var streamReader = AssemblyManifestResourceReader.GetStreamReader<HomerConfigFileGenerator>("templates.homer.yaml");
 
@@ -35,9 +52,7 @@ class HomerConfigFileGenerator : IHomerConfigFileGenerator
 
         var ctx = new ConfigurationRenderingContext(
             homerSettings,
-            ingresses
-                .Select(GetServiceFromIngress)  
-                .AsValueCollection()
+            services.AsValueCollection()
         );
         var rendered = await template.RenderAsync(ctx);
 
