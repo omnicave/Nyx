@@ -8,11 +8,11 @@ using Orleans;
 var builder = OrleansSiloHostBuilder.CreateSiloHost("ExampleOrleansCluster", "Ex1", args: args);
 
 builder
+    .ConfigureClustering(sb => sb.AddNatsClustering())
     .ConfigureOrleansSilo(
         (context, siloBuilder) =>
         {
             siloBuilder
-                .AddNatsClustering()
                 .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName);
         }
         )

@@ -7,8 +7,9 @@ using Orleans;
 using Orleans.Hosting;
 
 var builder = OrleansSiloHostBuilder.CreateBuilder(args);
-
-builder.ConfigureServices(collection => collection
+builder
+    .ConfigureClustering(siloBuilder => siloBuilder.UseLocalhostClustering())
+    .ConfigureServices(collection => collection
     .AddTransient<IHomerConfigFileGenerator, HomerConfigFileGenerator>()
     .AddKubernetesOperator(settings =>
     {

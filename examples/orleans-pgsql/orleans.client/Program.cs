@@ -25,6 +25,7 @@
 // app.Run();
 
 using System.Net;
+using Nyx.Cli;
 using Nyx.Orleans;
 using Nyx.Orleans.Host;
 using Nyx.Orleans.Jobs;
@@ -40,37 +41,48 @@ using Orleans.Runtime;
 using orleans.shared;
 using Orleans.Streams;
 
-var client = new ClientBuilder()
-    //.UseSimplifiedClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000), "ExampleOrleansCluster", "Ex1")
-    // .UseStaticClustering(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 12000))
-    // // // Clustering information
-    .Configure<ClusterOptions>(options =>
+var client = new OrleansClientHostBuilder("orleans.client", "ExampleOrleansCluster", "Ex1")
+    .ConfigureClient(builder =>
     {
-        options.ClusterId = "ExampleOrleansCluster";
-        options.ServiceId = "Ex1";
+        builder.AddNatsClustering()
+            .ConfigureApplicationParts(parts =>
+                parts
+                    .AddApplicationPart(typeof(IHelloWorldGrain).Assembly)
+                    .AddApplicationPart(typeof(IBackgroundJobGrain<>).Assembly)
+            )
+            .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName);
     })
-    .AddNatsClustering()
-    // Application parts: just reference one of the grain interfaces that we use
-    .ConfigureApplicationParts(parts => 
-        parts
-            .AddApplicationPart(typeof(IHelloWorldGrain).Assembly)
-            .AddApplicationPart(typeof(IBackgroundJobGrain<>).Assembly)
+    .ConfigureCli(
+        builder => builder.WithRootCommandHandler(
+            async (IHost host) =>
+            {
+                var client = host.Services.GetRequiredService<IClusterClient>();
+                var testStreamListener = client.GetGrain<ITestStreamListenerGrain>(Guid.Empty);
+                await testStreamListener.Start();
+
+                var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProviderName)
+                    .GetStream<TestStreamMessage>(StreamConstants.StreamId, StreamConstants.StreamNamespace);
+
+                int i = 0;
+                while (i < 20)
+                {
+                    await stream.OnNextAsync(new TestStreamMessage($"Iteration from client {i++}", i));
+                }
+
+                Console.WriteLine("Press any key to exit ... ");
+                Console.ReadKey();
+
+                Console.WriteLine("Exiting ... ");
+            }
+        )
     )
-    .Configure<SerializationProviderOptions>(options =>
-    {
-        options.FallbackSerializationProvider = typeof(NewtonsoftJsonExternalSerializer);
-    })
-    .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName)
     .Build();
 
-await client.Connect();
-
-var testStreamListener = client.GetGrain<ITestStreamListenerGrain>(Guid.Empty);
-await testStreamListener.Start();
+await client.RunAsync();
 
 // var g = await client.StartJob(new TestJob());
 
-var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProviderName).GetStream<TestStreamMessage>(StreamConstants.StreamId, StreamConstants.StreamNamespace);
+
 // Func<TestStreamMessage,StreamSequenceToken,Task> processMessages = (msg, sequence) =>
 // {
 //     Console.WriteLine($"{msg.Message} [{msg.Number}]");
@@ -78,11 +90,7 @@ var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProvide
 // };
 // var result = await stream.SubscribeAsync(processMessages);
 
-int i = 0;
-while (i < 20)
-{
-    await stream.OnNextAsync(new TestStreamMessage($"Iteration from client {i++}", i));
-}
+
 
 // var exit = false;
 // int i = 0;
@@ -109,13 +117,7 @@ while (i < 20)
 //         await g.Cancel();
 // }
 
-Console.WriteLine("Press any key to exit ... ");
-Console.ReadKey();
 
-Console.WriteLine("Exiting ... ");
-await client.Close();
-await client.DisposeAsync();
-client.Dispose();
 
 // var motd = await g.GetHosts();
 // motd.Select(x=> $"{x.Key.Endpoint}[{x.Key.Generation}][{x.Value}][{x.Key.IsClient}]").ToList().ForEach( Console.WriteLine);
