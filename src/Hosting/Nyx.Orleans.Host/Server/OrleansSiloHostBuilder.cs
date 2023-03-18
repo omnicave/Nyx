@@ -24,7 +24,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     private readonly string _title;
     private readonly string _version;
     private Action<MvcNewtonsoftJsonOptions> _configureJsonSerializer = options => { };
-    internal Action<HostBuilderContext, ISiloBuilder> ClusteringConfiguration = OrleansSiloHostBuilderExtensions.ConfigureOrleansForDevelopmentClustering;
+    internal Action<HostBuilderContext, ISiloBuilder>? ClusteringConfiguration;
     internal readonly List<Action<HostBuilderContext, ISiloBuilder>> SiloBuilderExtraConfiguration = new();
     internal Action<HostBuilderContext, ISiloBuilder> PubStoreConfiguration = (context, builder) => { };
     internal readonly List<Action<IApplicationBuilder>> ApplicationBuilderConfiguration = new();
@@ -228,13 +228,17 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     {
         host.UseOrleans( (context, siloBuilder) =>
         {
+            if (ClusteringConfiguration == null)
+                throw new InvalidOperationException(
+                    "Cannot start Orleans cluster because clustering configuration is not set.");
+            
             ClusteringConfiguration(context, siloBuilder);
 
             foreach (var item in SiloBuilderExtraConfiguration)
                 item(context, siloBuilder);
             
             PubStoreConfiguration(context, siloBuilder);
-
+            
             siloBuilder
                 .Configure<SerializationProviderOptions>(options =>
                 {
