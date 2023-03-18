@@ -18,7 +18,7 @@ VERSION_SUFFIX="${CURRENT_BRANCH}-${COMMIT_COUNT}.${SHORT_HASH}"
 rm -rf ./packages/*
 
 dotnet clean
-dotnet build -c Debug --version-suffix "${VERSION_SUFFIX}"
-dotnet pack -c Debug --version-suffix "${VERSION_SUFFIX}" -o ./packages
+dotnet build -c Release --version-suffix "${VERSION_SUFFIX}"
+dotnet pack -c Release --version-suffix "${VERSION_SUFFIX}" -o ./packages
 
 # dotnet nuget push ./packages/*.nupkg --skip-duplicate -s ${NUGET_REPO_NAME}
