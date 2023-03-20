@@ -45,11 +45,6 @@ var client = new OrleansClientHostBuilder("orleans.client", "ExampleOrleansClust
     .ConfigureClient(builder =>
     {
         builder.AddNatsClustering()
-            .ConfigureApplicationParts(parts =>
-                parts
-                    .AddApplicationPart(typeof(IHelloWorldGrain).Assembly)
-                    .AddApplicationPart(typeof(IBackgroundJobGrain<>).Assembly)
-            )
             .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName);
     })
     .ConfigureCli(
@@ -61,7 +56,7 @@ var client = new OrleansClientHostBuilder("orleans.client", "ExampleOrleansClust
                 await testStreamListener.Start();
 
                 var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProviderName)
-                    .GetStream<TestStreamMessage>(StreamConstants.StreamId, StreamConstants.StreamNamespace);
+                    .GetStream<TestStreamMessage>(StreamConstants.StreamNamespace, StreamConstants.StreamId);
 
                 int i = 0;
                 while (i < 20)

@@ -11,8 +11,7 @@ public static class SiloBuilderExtensions
     public static ISiloBuilder AddNatsStreams(this ISiloBuilder builder, string name, Action<NatsSiloPersistentStreamConfigurator>? configure = null)
     {
         var configurator = new NatsSiloPersistentStreamConfigurator(name,
-            configureServicesDelegate => builder.ConfigureServices(configureServicesDelegate),
-            configureAppPartsDelegate => builder.ConfigureApplicationParts(configureAppPartsDelegate));
+            configureServicesDelegate => builder.ConfigureServices(configureServicesDelegate));
         configure?.Invoke(configurator);
         return builder;
     }
@@ -20,7 +19,7 @@ public static class SiloBuilderExtensions
     public static ISiloBuilder AddNatsClustering(this ISiloBuilder builder)
     {
         builder.ConfigureServices(
-            (context, collection) =>
+            (collection) =>
             {
                 collection.AddSingleton<IMembershipTable, NatsMembershipTable>();
             }

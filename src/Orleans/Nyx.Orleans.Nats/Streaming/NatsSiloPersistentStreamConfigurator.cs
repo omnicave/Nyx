@@ -1,10 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
-using Orleans;
-using Orleans.ApplicationParts;
 using Orleans.Configuration;
-using Orleans.Hosting;
-using Orleans.Providers.Streams.Common;
-using Orleans.Streams;
 
 namespace Nyx.Orleans.Nats.Streaming;
 
@@ -12,16 +7,8 @@ public class NatsSiloPersistentStreamConfigurator : SiloPersistentStreamConfigur
 {
     public NatsSiloPersistentStreamConfigurator(
         string name, 
-        Action<Action<IServiceCollection>> configureServicesDelegate, 
-        Action<Action<IApplicationPartManager>> configureAppPartsDelegate) : base(name, configureServicesDelegate, NatsJetStreamAdapterFactory.Create)
+        Action<Action<IServiceCollection>> configureServicesDelegate) : base(name, configureServicesDelegate, NatsJetStreamAdapterFactory.Create)
     {
-        configureAppPartsDelegate(parts =>
-        {
-            parts
-                .AddFrameworkPart(typeof(NatsJetStreamAdapterFactory).Assembly)
-                .AddFrameworkPart(typeof(EventSequenceTokenV2).Assembly);
-        });
-
         ConfigureDelegate(services =>
         {
             // services.AddOptions<NatsStreamingOptions>(name);

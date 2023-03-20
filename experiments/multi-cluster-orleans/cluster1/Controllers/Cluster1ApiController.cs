@@ -11,27 +11,27 @@ namespace cluster1.Controllers;
 public class Cluster1ApiController : Controller
 {
     private readonly IClusterClient _clusterClient;
-    private readonly IExternalOrleansClusterClientFactory _externalOrleansClusterClientFactory;
+    private readonly IExternalOrleansClusterClientProvider _externalOrleansClusterClientProvider;
     private readonly ILogger<Cluster1ApiController> _log;
 
-    public Cluster1ApiController(IClusterClient clusterClient, IExternalOrleansClusterClientFactory externalOrleansClusterClientFactory, ILogger<Cluster1ApiController> log)
+    public Cluster1ApiController(IClusterClient clusterClient, IExternalOrleansClusterClientProvider externalOrleansClusterClientProvider, ILogger<Cluster1ApiController> log)
     {
         _clusterClient = clusterClient;
-        _externalOrleansClusterClientFactory = externalOrleansClusterClientFactory;
+        _externalOrleansClusterClientProvider = externalOrleansClusterClientProvider;
         _log = log;
     }
     
     [HttpGet("")]
     public async Task<ActionResult> X()
     {
-        _log.Trace("ClusterStartupTask::Execute() >> ");
-        var remoteClusterClient = _externalOrleansClusterClientFactory.GetClusterClient("cluster2");
+        _log.LogTrace("ClusterStartupTask::Execute() >> ");
+        var remoteClusterClient = _externalOrleansClusterClientProvider.GetClusterClient("cluster2");
 
         int i = 0;
         while (true)
         {
             
-            _log.Trace($"ClusterStartupTask::Execute() - {++i}");
+            _log.LogTrace($"ClusterStartupTask::Execute() - {++i}");
 
             var helloCluster2 = remoteClusterClient.GetGrain<IHelloCluster2Grain>(Guid.Empty);
             await helloCluster2.HelloCluster2();
@@ -39,7 +39,7 @@ public class Cluster1ApiController : Controller
             break;
         }
         
-        _log.Trace("ClsuterStartupTask::Execute() << ");
+        _log.LogTrace("ClsuterStartupTask::Execute() << ");
         
         return Ok();
     }

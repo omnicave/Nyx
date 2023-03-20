@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using Orleans.Providers.Streams.Common;
 using Orleans.Streams;
 
+
 namespace Nyx.Orleans.Serialization;
 
 public class EventSequenceTokenConverter : JsonConverter

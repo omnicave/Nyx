@@ -9,8 +9,8 @@ builder
     .RegisterExternalOrleansCluster("cluster2",
         clientBuilder => clientBuilder.UseStaticClustering(
             new IPEndPoint(IPAddress.Loopback, 12002),
-            "MultiClusterOrleans1",
-            "Cluster1")
+            "MultiClusterOrleans2",
+            "Cluster2")
     )
     ;
 

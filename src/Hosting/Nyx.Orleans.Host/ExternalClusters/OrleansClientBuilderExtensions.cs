@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Net;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Orleans;
@@ -17,10 +18,10 @@ public static partial class OrleansClientBuilderExtensions
             {
                 collection
                     .AddSingletonNamedService<IClusterClient>(name,
-                        (provider, s) => new ClusterClientFactory(provider, new[] {configurator}))
+                        (provider, s) => new ExternalClusterClient(provider, new[] {configurator}))
                     .AddHostedService<ClusterClientConnector>(provider => new ClusterClientConnector(name, provider));
 
-                collection.TryAddSingleton<IExternalOrleansClusterClientFactory, ExternalClusterClientFactory>();
+                collection.TryAddSingleton<IExternalOrleansClusterClientProvider, ExternalClusterClientProvider>();
             });
 
         return builder;

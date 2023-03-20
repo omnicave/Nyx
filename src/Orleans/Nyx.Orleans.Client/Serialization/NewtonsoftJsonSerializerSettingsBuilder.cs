@@ -1,7 +1,10 @@
 using Newtonsoft.Json;
+using Nyx.Orleans.Nats.Clustering;
 using Orleans;
+using Orleans.GrainReferences;
 using Orleans.Runtime;
 using Orleans.Serialization;
+using Orleans.Serialization.TypeSystem;
 
 namespace Nyx.Orleans.Serialization;
 
@@ -15,14 +18,14 @@ public static class NewtonsoftJsonSerializerSettingsBuilder
     }
 
     public static JsonSerializerSettings GetDefaultsWithOrleansSupport(
-        ITypeResolver typeResolver,
-        IGrainFactory grainFactory
+        TypeResolver typeResolver,
+        GrainReferenceActivator grainReferenceActivator
         )
     {
         var settings = GetDefaults();
         var serializationBinder = new OrleansJsonSerializationBinder(typeResolver);
         settings.SerializationBinder = serializationBinder;
-        settings.Converters.Add(new GrainReferenceConverter(grainFactory, serializationBinder));
+        settings.Converters.Add(new GrainReferenceJsonConverter(grainReferenceActivator));
         settings.Converters.Add(new EventSequenceTokenConverter());
 
         return settings;
@@ -43,7 +46,7 @@ public static class NewtonsoftJsonSerializerSettingsBuilder
         jsonSerializerSettings.Converters.Add(new IPAddressConverter());
         jsonSerializerSettings.Converters.Add(new IPEndPointConverter());
         jsonSerializerSettings.Converters.Add(new GrainIdConverter());
-        jsonSerializerSettings.Converters.Add(new SiloAddressConverter());
+        jsonSerializerSettings.Converters.Add(new NewtonsoftJsonSiloAddressConverter());
         jsonSerializerSettings.Converters.Add(new UniqueKeyConverter());
 
     }

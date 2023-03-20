@@ -3,6 +3,7 @@ using Nyx.Hosting;
 using Nyx.Orleans.Serialization;
 using Orleans;
 using Orleans.Configuration;
+using Orleans.Serialization;
 
 namespace Nyx.Orleans.Host;
 
@@ -30,10 +31,10 @@ public class OrleansClientHostBuilder : BaseHostBuilder
     {
         var x = ClientExtraConfiguration.Concat(new Action<IClientBuilder>[]
             {
-                builder => builder.Configure<SerializationProviderOptions>(options =>
-                    {
-                        options.FallbackSerializationProvider = typeof(NewtonsoftJsonExternalSerializer);
-                    })
+                builder => builder.Services.AddSerializer(
+                    builder => builder.AddNewtonsoftJsonSerializer(type => type.FullName.StartsWith("Nyx"))
+                    ),
+                builder => builder
                     .Configure<ClusterOptions>(options =>
                     {
                         options.ClusterId = _clusterId;

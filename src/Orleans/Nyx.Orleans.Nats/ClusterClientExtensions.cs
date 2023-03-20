@@ -11,7 +11,7 @@ public static class ClusterClientExtensions
 {
     public static IClientBuilder AddNatsClustering(this IClientBuilder builder)
     {
-        builder.ConfigureServices((context, collection) =>
+        builder.ConfigureServices((collection) =>
         {
             collection.AddSingleton<IGatewayListProvider, NatsGatewayListProvider>();
         });

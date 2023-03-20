@@ -14,7 +14,7 @@ public class BackgroundJobIndexGrain : Grain, IBackgroundJobIndexGrain
     {
         _indexState = indexState;
     }
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         if (_indexState.State.BucketBrainIds.Count == 0)
         {
@@ -24,7 +24,7 @@ public class BackgroundJobIndexGrain : Grain, IBackgroundJobIndexGrain
             await _indexState.WriteStateAsync();
         }
         
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
     
     private IBackgroundJobIndexBucketGrain GetIndexGrain(Guid jobId)
