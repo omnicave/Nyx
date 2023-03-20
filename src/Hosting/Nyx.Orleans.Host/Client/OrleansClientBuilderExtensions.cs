@@ -39,12 +39,15 @@ public static class OrleansClientHostBuilderExtensions
     public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, IEnumerable<Action<IClientBuilder>> configurator)
         where TBuilder : IHostBuilder
     {
-
-        builder.ConfigureServices(
-            collection => collection
-                .AddSingleton<IClusterClient>(provider => new ClusterClientFactory(provider, configurator ))
-                .AddHostedService<ClusterClientConnector>(provider => new ClusterClientConnector(null, provider)));
-
+        
+        builder.UseOrleansClient((_, clientBuilder) =>
+        {
+            foreach (var action in configurator)
+            {
+                action(clientBuilder);
+            }
+        });
+        
         return builder;
     }
 

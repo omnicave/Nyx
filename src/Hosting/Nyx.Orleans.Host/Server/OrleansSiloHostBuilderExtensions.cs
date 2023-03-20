@@ -1,7 +1,10 @@
+using Microsoft.Extensions.Options;
 using Nyx.Orleans.Host.Db;
 using Nyx.Orleans.Serialization;
 using Orleans.Hosting;
 using Orleans.Runtime.Development;
+using Orleans.Serialization;
+using Orleans.Storage;
 using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
 namespace Nyx.Orleans.Host;
@@ -63,9 +66,14 @@ public static class OrleansSiloHostBuilderExtensions
                 {
                     options.ConnectionString = connectionString;
                     options.Invariant = "Npgsql";
-                    options.UseJsonFormat = true;
-                    options.ConfigureJsonSerializerSettings = 
-                        NewtonsoftJsonSerializerSettingsBuilder.ConfigureJsonSerializerSettingsWithDefaults;
+                    options.GrainStorageSerializer = new JsonGrainStorageSerializer(
+                        new OrleansJsonSerializer(
+                            new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
+                            {
+                                JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
+                            })
+                        )
+                    );
                 }
             )
         );
@@ -86,10 +94,15 @@ public static class OrleansSiloHostBuilderExtensions
                     {
                         options.ConnectionString = connectionString;
                         options.Invariant = "Npgsql";
-                        options.UseJsonFormat = true;
-                        options.ConfigureJsonSerializerSettings = 
-                            NewtonsoftJsonSerializerSettingsBuilder.ConfigureJsonSerializerSettingsWithDefaults;
-                        
+                        options.GrainStorageSerializer = new JsonGrainStorageSerializer(
+                            new OrleansJsonSerializer(
+                                new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
+                                {
+                                    JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
+                                })
+                            )
+                        );
+
                     }
                 )
             )

@@ -1,5 +1,6 @@
 using Orleans;
 using Orleans.Runtime;
+using Orleans.Runtime.Messaging;
 
 namespace Nyx.Orleans.Host;
 
@@ -27,23 +28,30 @@ public class ClusterClientConnector : IHostedService
 
         var clusterClient = GetClusterClient();
         
-        const int maxTries = 10;
-        for (var attempt = 0; attempt < maxTries; attempt++)
+        if (clusterClient is IHostedService clusterClientHostedService)
         {
-            try
+            const int maxTries = 10;
+            for (var attempt = 0; attempt < maxTries; attempt++)
             {
-                _log.LogTrace("Attempting connection to '{ClusterName}' ({AttemptNumber}) ...", logPurposesName, attempt);
-                await clusterClient.Connect();
-                _log.LogTrace("Attempting connect ... ok");
-                break;
-            }
-            catch (Exception e)
-            {
-                _log.LogError(e, "Failed to connect '{ClusterName}' ({AttemptNumber}) ... retrying in 10s", logPurposesName, attempt);
-            }
+                try
+                {
+                    _log.LogTrace("Attempting connection to '{ClusterName}' ({AttemptNumber}) ...", logPurposesName, attempt);
+                    await clusterClientHostedService.StartAsync(cancellationToken);
+                    _log.LogTrace("Attempting connect ... ok");
+                    break;
+                }
+                catch (ConnectionFailedException e)
+                {
+                    _log.LogError(e, "Failed to connect '{ClusterName}' ({AttemptNumber}) ... retrying in 10s", logPurposesName, attempt);
+                }
             
-            await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), cancellationToken);
+            }
         }
+        
+        
+        //
+        
         
         _log.LogTrace("ClusterClientConnector::StartAsync({ClusterName}) << ", logPurposesName);
     }
@@ -59,8 +67,13 @@ public class ClusterClientConnector : IHostedService
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         var clusterClient = GetClusterClient();
+        
+        if (clusterClient is IHostedService clusterClientHostedService)
+        {
+            await clusterClientHostedService.StopAsync(cancellationToken);
+        }
        
-        await clusterClient.Close();
-        await ((ClusterClientFactory)clusterClient).ClusterClientImplementation.DisposeAsync();
+        // await clusterClient.Close();
+        // await ((ClusterClientFactory)clusterClient).ClusterClientImplementation.DisposeAsync();
     }
 }

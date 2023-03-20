@@ -2,6 +2,7 @@ using System.Collections;
 using NATS.Client;
 using Newtonsoft.Json;
 using Orleans.Providers.Streams.Common;
+using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Nyx.Orleans.Nats.Streaming;
@@ -41,10 +42,12 @@ public class NatsBatchContainer : IBatchContainer
         return false;
     }
 
-    public bool ShouldDeliver(IStreamIdentity stream, object filterData, StreamFilterPredicate shouldReceiveFunc)
-    {
-        return Entries.Any(e => shouldReceiveFunc(stream, filterData, e.Event));
-    }
+    public StreamId StreamId => StreamId.Create(StreamNamespace, StreamGuid);
+
+    // public bool ShouldDeliver(IStreamIdentity stream, object filterData, StreamFilterPredicate shouldReceiveFunc)
+    // {
+    //     return Entries.Any(e => shouldReceiveFunc(stream, filterData, e.Event));
+    // }
 
     public Guid StreamGuid { get; }
     public string StreamNamespace { get; }

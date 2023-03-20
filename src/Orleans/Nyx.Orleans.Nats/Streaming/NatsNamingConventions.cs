@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Options;
 using Orleans.Configuration;
+using Orleans.Runtime;
 
 namespace Nyx.Orleans.Nats.Streaming;
 
@@ -28,5 +29,10 @@ internal class NatsNamingConventions
     public string Prefix { get; }
 
     public string GetSubject(Guid streamGuid, string streamNamespace) => 
-        $"{Prefix}-{_providerName}.{streamNamespace}.{streamGuid.ToString("N")}";
+        $"{Prefix}-{_providerName}.{streamNamespace}.{streamGuid:N}";
+    
+#if NET7_0
+    public string GetSubject(StreamId streamId) => 
+        $"{Prefix}-{_providerName}.{streamId.ToString()}";
+#endif
 }

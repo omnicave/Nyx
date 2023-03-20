@@ -1,23 +1,23 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
     <IsPackable>true</IsPackable>
+    <TargetFramework>net7.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="6.0.6" />
-    <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="6.0.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.4" />
     <PackageReference Include="Npgsql" Version="6.0.6" />
-    <PackageReference Include="OrleansDashboard" Version="3.6.2" />
+    <PackageReference Include="OrleansDashboard" Version="$(OrleansVersion)" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
-    <PackageReference Include="Microsoft.Orleans.Server" Version="3.6.5" />
-    <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="3.6.5" />
-    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="3.6.5" />
-    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="3.6.5" />
+    <PackageReference Include="Microsoft.Orleans.Server" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Serialization.NewtonsoftJson" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Persistence.AdoNet" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Reminders.AdoNet" Version="$(OrleansVersion)" />
   </ItemGroup>
 
   <ItemGroup>

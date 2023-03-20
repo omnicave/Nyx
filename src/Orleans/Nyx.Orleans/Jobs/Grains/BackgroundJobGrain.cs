@@ -159,7 +159,7 @@ public abstract class BackgroundJobGrain<TJobDetails> : Grain, IBackgroundJobGra
         }
         
         await NotifyOnOrleansScheduler(JobStatus.Started);
-        await using var clusterClient = serviceProvider.GetRequiredService<IClusterClient>();
+        var clusterClient = serviceProvider.GetRequiredService<IClusterClient>();
         try
         {
             await NotifyOnOrleansScheduler(JobStatus.Running);

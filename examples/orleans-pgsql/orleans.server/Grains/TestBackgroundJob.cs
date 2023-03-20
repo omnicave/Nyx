@@ -9,12 +9,12 @@ public class TestBackgroundJob : BackgroundJobGrain<TestJob>, IBackgroundJobGrai
 {
     private IAsyncStream<TestStreamMessage>? _stream;
 
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         var sp = this.GetStreamProvider("nats");
-        _stream = sp.GetStream<TestStreamMessage>(StreamConstants.StreamId, StreamConstants.StreamNamespace);
-        
-        await base.OnActivateAsync();
+        _stream = sp.GetStream<TestStreamMessage>(StreamConstants.StreamNamespace, StreamConstants.StreamId);
+
+        await base.OnActivateAsync(cancellationToken);
     }
 
     protected override async Task WorkerAsync(IServiceProvider serviceProvider, CancellationToken cancellationToken, TestJob testJob)

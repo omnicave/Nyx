@@ -17,7 +17,7 @@ public class BackgroundJobInformationGrain : Grain, IBackgroundJobInformationGra
 
     IBackgroundJobIndexGrain GetIndexGrain() => GrainFactory.GetGrain<IBackgroundJobIndexGrain>(Guid.Empty);
 
-    public override async Task OnActivateAsync()
+    public override async Task OnActivateAsync(CancellationToken cancellationToken)
     {
         if (_jobState.State == null)
         {
@@ -32,7 +32,7 @@ public class BackgroundJobInformationGrain : Grain, IBackgroundJobInformationGra
         
         await GetIndexGrain().RegisterJobWithId(this.GetPrimaryKey());
 
-        await base.OnActivateAsync();
+        await base.OnActivateAsync(cancellationToken);
     }
 
     public Task SetJobDetails(object details)

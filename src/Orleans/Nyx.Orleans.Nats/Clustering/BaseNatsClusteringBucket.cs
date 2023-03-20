@@ -47,7 +47,7 @@ public class BaseNatsClusteringBucket : IKeyValueWatcher, IDisposable
         _jsonSerializerSettings.Converters.Add(new IPAddressConverter());
         _jsonSerializerSettings.Converters.Add(new IPEndPointConverter());
         _jsonSerializerSettings.Converters.Add(new GrainIdConverter());
-        _jsonSerializerSettings.Converters.Add(new SiloAddressConverter());
+        _jsonSerializerSettings.Converters.Add(new NewtonsoftJsonSiloAddressConverter());
         _jsonSerializerSettings.Converters.Add(new UniqueKeyConverter());
     }
     private string GetBucketName() =>

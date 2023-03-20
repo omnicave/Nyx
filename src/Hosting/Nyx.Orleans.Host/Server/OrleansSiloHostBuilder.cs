@@ -11,6 +11,7 @@ using Nyx.Orleans.Serialization;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Hosting;
+using Orleans.Serialization;
 using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
 namespace Nyx.Orleans.Host;
@@ -171,8 +172,8 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         
         webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
 
-        SetupWebApi(_title, webApplicationBuilder, apiPort, healthCheckPort);
         SetupOrleans(webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
+        SetupWebApi(_title, webApplicationBuilder, apiPort, healthCheckPort);
 
         ApplyHostBuilderOperations(webApplicationBuilder.Host);
 
@@ -238,12 +239,12 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
                 item(context, siloBuilder);
             
             PubStoreConfiguration(context, siloBuilder);
+
+            siloBuilder.Services.AddSerializer(
+                builder => builder.AddNewtonsoftJsonSerializer(type => type.FullName.StartsWith("Nyx"))
+            );
             
             siloBuilder
-                .Configure<SerializationProviderOptions>(options =>
-                {
-                    options.FallbackSerializationProvider = typeof(NewtonsoftJsonExternalSerializer);
-                })
                 .Configure<EndpointOptions>(options =>
                 {
                     options.AdvertisedIPAddress = IPAddress.Loopback;
