@@ -33,26 +33,26 @@ CREATE FUNCTION update_i_am_alive_time(
     port_arg OrleansMembershipTable.Port%TYPE,
     generation_arg OrleansMembershipTable.Generation%TYPE,
     i_am_alive_time OrleansMembershipTable.IAmAliveTime%TYPE)
-  RETURNS void AS
-$func$
+    RETURNS void AS
+    $func$
 BEGIN
     -- This is expected to never fail by Orleans, so return value
     -- is not needed nor is it checked.
-    UPDATE OrleansMembershipTable as d
-    SET
-        IAmAliveTime = i_am_alive_time
-    WHERE
+UPDATE OrleansMembershipTable as d
+SET
+    IAmAliveTime = i_am_alive_time
+WHERE
         d.DeploymentId = deployment_id AND deployment_id IS NOT NULL
-        AND d.Address = address_arg AND address_arg IS NOT NULL
-        AND d.Port = port_arg AND port_arg IS NOT NULL
-        AND d.Generation = generation_arg AND generation_arg IS NOT NULL;
+  AND d.Address = address_arg AND address_arg IS NOT NULL
+  AND d.Port = port_arg AND port_arg IS NOT NULL
+  AND d.Generation = generation_arg AND generation_arg IS NOT NULL;
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'UpdateIAmAlivetimeKey','
+    (
+        'UpdateIAmAlivetimeKey','
     -- This is expected to never fail by Orleans, so return value
     -- is not needed nor is it checked.
     SELECT * from update_i_am_alive_time(
@@ -67,38 +67,38 @@ VALUES
 CREATE FUNCTION insert_membership_version(
     DeploymentIdArg OrleansMembershipTable.DeploymentId%TYPE
 )
-  RETURNS TABLE(row_count integer) AS
+    RETURNS TABLE(row_count integer) AS
 $func$
 DECLARE
-    RowCountVar int := 0;
+RowCountVar int := 0;
 BEGIN
 
-    BEGIN
+BEGIN
 
-        INSERT INTO OrleansMembershipVersionTable
-        (
-            DeploymentId
-        )
-        SELECT DeploymentIdArg
-        ON CONFLICT (DeploymentId) DO NOTHING;
+INSERT INTO OrleansMembershipVersionTable
+(
+    DeploymentId
+)
+SELECT DeploymentIdArg
+    ON CONFLICT (DeploymentId) DO NOTHING;
 
-        GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-        ASSERT RowCountVar <> 0, 'no rows affected, rollback';
+ASSERT RowCountVar <> 0, 'no rows affected, rollback';
 
-        RETURN QUERY SELECT RowCountVar;
-    EXCEPTION
+RETURN QUERY SELECT RowCountVar;
+EXCEPTION
     WHEN assert_failure THEN
         RETURN QUERY SELECT RowCountVar;
-    END;
+END;
 
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'InsertMembershipVersionKey','
+    (
+        'InsertMembershipVersionKey','
     SELECT * FROM insert_membership_version(
         @DeploymentId
     );
@@ -116,70 +116,70 @@ CREATE FUNCTION insert_membership(
     StartTimeArg    OrleansMembershipTable.StartTime%TYPE,
     IAmAliveTimeArg OrleansMembershipTable.IAmAliveTime%TYPE,
     VersionArg      OrleansMembershipVersionTable.Version%TYPE)
-  RETURNS TABLE(row_count integer) AS
+    RETURNS TABLE(row_count integer) AS
 $func$
 DECLARE
-    RowCountVar int := 0;
+RowCountVar int := 0;
 BEGIN
 
-    BEGIN
-        INSERT INTO OrleansMembershipTable
-        (
-            DeploymentId,
-            Address,
-            Port,
-            Generation,
-            SiloName,
-            HostName,
-            Status,
-            ProxyPort,
-            StartTime,
-            IAmAliveTime
-        )
-        SELECT
-            DeploymentIdArg,
-            AddressArg,
-            PortArg,
-            GenerationArg,
-            SiloNameArg,
-            HostNameArg,
-            StatusArg,
-            ProxyPortArg,
-            StartTimeArg,
-            IAmAliveTimeArg
-        ON CONFLICT (DeploymentId, Address, Port, Generation) DO
+BEGIN
+INSERT INTO OrleansMembershipTable
+(
+    DeploymentId,
+    Address,
+    Port,
+    Generation,
+    SiloName,
+    HostName,
+    Status,
+    ProxyPort,
+    StartTime,
+    IAmAliveTime
+)
+SELECT
+    DeploymentIdArg,
+    AddressArg,
+    PortArg,
+    GenerationArg,
+    SiloNameArg,
+    HostNameArg,
+    StatusArg,
+    ProxyPortArg,
+    StartTimeArg,
+    IAmAliveTimeArg
+    ON CONFLICT (DeploymentId, Address, Port, Generation) DO
             NOTHING;
 
 
-        GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-        UPDATE OrleansMembershipVersionTable
-        SET
-            Timestamp = now(),
-            Version = Version + 1
-        WHERE
-            DeploymentId = DeploymentIdArg AND DeploymentIdArg IS NOT NULL
-            AND Version = VersionArg AND VersionArg IS NOT NULL
-            AND RowCountVar > 0;
+UPDATE OrleansMembershipVersionTable
+SET
+    Timestamp = now(),
+    Version = Version + 1
+WHERE
+        DeploymentId = DeploymentIdArg AND DeploymentIdArg IS NOT NULL
+  AND Version = VersionArg AND VersionArg IS NOT NULL
+  AND RowCountVar > 0;
 
-        GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-        ASSERT RowCountVar <> 0, 'no rows affected, rollback';
+ASSERT RowCountVar <> 0, 'no rows affected, rollback';
 
 
-        RETURN QUERY SELECT RowCountVar;
-    EXCEPTION
+RETURN QUERY SELECT RowCountVar;
+EXCEPTION
     WHEN assert_failure THEN
         RETURN QUERY SELECT RowCountVar;
-    END;
+END;
 
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'InsertMembershipKey','
+    (
+        'InsertMembershipKey','
     SELECT * FROM insert_membership(
         @DeploymentId,
         @Address,
@@ -204,57 +204,57 @@ CREATE FUNCTION update_membership(
     SuspectTimesArg OrleansMembershipTable.SuspectTimes%TYPE,
     IAmAliveTimeArg OrleansMembershipTable.IAmAliveTime%TYPE,
     VersionArg      OrleansMembershipVersionTable.Version%TYPE
-  )
-  RETURNS TABLE(row_count integer) AS
+)
+    RETURNS TABLE(row_count integer) AS
 $func$
 DECLARE
-    RowCountVar int := 0;
+RowCountVar int := 0;
 BEGIN
 
-    BEGIN
+BEGIN
 
-    UPDATE OrleansMembershipVersionTable
-    SET
-        Timestamp = now(),
-        Version = Version + 1
-    WHERE
+UPDATE OrleansMembershipVersionTable
+SET
+    Timestamp = now(),
+    Version = Version + 1
+WHERE
         DeploymentId = DeploymentIdArg AND DeploymentIdArg IS NOT NULL
-        AND Version = VersionArg AND VersionArg IS NOT NULL;
+  AND Version = VersionArg AND VersionArg IS NOT NULL;
 
 
-    GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-    UPDATE OrleansMembershipTable
-    SET
-        Status = StatusArg,
-        SuspectTimes = SuspectTimesArg,
-        IAmAliveTime = IAmAliveTimeArg
-    WHERE
+UPDATE OrleansMembershipTable
+SET
+    Status = StatusArg,
+    SuspectTimes = SuspectTimesArg,
+    IAmAliveTime = IAmAliveTimeArg
+WHERE
         DeploymentId = DeploymentIdArg AND DeploymentIdArg IS NOT NULL
-        AND Address = AddressArg AND AddressArg IS NOT NULL
-        AND Port = PortArg AND PortArg IS NOT NULL
-        AND Generation = GenerationArg AND GenerationArg IS NOT NULL
-        AND RowCountVar > 0;
+  AND Address = AddressArg AND AddressArg IS NOT NULL
+  AND Port = PortArg AND PortArg IS NOT NULL
+  AND Generation = GenerationArg AND GenerationArg IS NOT NULL
+  AND RowCountVar > 0;
 
 
-        GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-        ASSERT RowCountVar <> 0, 'no rows affected, rollback';
+ASSERT RowCountVar <> 0, 'no rows affected, rollback';
 
 
-        RETURN QUERY SELECT RowCountVar;
-    EXCEPTION
+RETURN QUERY SELECT RowCountVar;
+EXCEPTION
     WHEN assert_failure THEN
         RETURN QUERY SELECT RowCountVar;
-    END;
+END;
 
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'UpdateMembershipKey','
+    (
+        'UpdateMembershipKey','
     SELECT * FROM update_membership(
         @DeploymentId,
         @Address,
@@ -269,8 +269,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'MembershipReadRowKey','
+    (
+        'MembershipReadRowKey','
     SELECT
         v.DeploymentId,
         m.Address,
@@ -297,8 +297,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'MembershipReadAllKey','
+    (
+        'MembershipReadAllKey','
     SELECT
         v.DeploymentId,
         m.Address,
@@ -321,8 +321,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'DeleteMembershipTableEntriesKey','
+    (
+        'DeleteMembershipTableEntriesKey','
     DELETE FROM OrleansMembershipTable
     WHERE DeploymentId = @DeploymentId AND @DeploymentId IS NOT NULL;
     DELETE FROM OrleansMembershipVersionTable
@@ -331,8 +331,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'GatewaysQueryKey','
+    (
+        'GatewaysQueryKey','
     SELECT
         Address,
         ProxyPort,
