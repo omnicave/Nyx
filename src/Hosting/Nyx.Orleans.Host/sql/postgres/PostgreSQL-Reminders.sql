@@ -19,49 +19,49 @@ CREATE FUNCTION upsert_reminder_row(
     StartTimeArg    OrleansRemindersTable.StartTime%TYPE,
     PeriodArg       OrleansRemindersTable.Period%TYPE,
     GrainHashArg    OrleansRemindersTable.GrainHash%TYPE
-  )
-  RETURNS TABLE(version integer) AS
+)
+    RETURNS TABLE(version integer) AS
 $func$
 DECLARE
-    VersionVar int := 0;
+VersionVar int := 0;
 BEGIN
 
-    INSERT INTO OrleansRemindersTable
-    (
-        ServiceId,
-        GrainId,
-        ReminderName,
-        StartTime,
-        Period,
-        GrainHash,
-        Version
-    )
-    SELECT
-        ServiceIdArg,
-        GrainIdArg,
-        ReminderNameArg,
-        StartTimeArg,
-        PeriodArg,
-        GrainHashArg,
-        0
+INSERT INTO OrleansRemindersTable
+(
+    ServiceId,
+    GrainId,
+    ReminderName,
+    StartTime,
+    Period,
+    GrainHash,
+    Version
+)
+SELECT
+    ServiceIdArg,
+    GrainIdArg,
+    ReminderNameArg,
+    StartTimeArg,
+    PeriodArg,
+    GrainHashArg,
+    0
     ON CONFLICT (ServiceId, GrainId, ReminderName)
         DO UPDATE SET
-            StartTime = excluded.StartTime,
-            Period = excluded.Period,
-            GrainHash = excluded.GrainHash,
-            Version = OrleansRemindersTable.Version + 1
-    RETURNING
-        OrleansRemindersTable.Version INTO STRICT VersionVar;
+    StartTime = excluded.StartTime,
+                   Period = excluded.Period,
+                   GrainHash = excluded.GrainHash,
+                   Version = OrleansRemindersTable.Version + 1
+                   RETURNING
+                   OrleansRemindersTable.Version INTO STRICT VersionVar;
 
-    RETURN QUERY SELECT VersionVar AS versionr;
+RETURN QUERY SELECT VersionVar AS versionr;
 
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'UpsertReminderRowKey','
+    (
+        'UpsertReminderRowKey','
     SELECT * FROM upsert_reminder_row(
         @ServiceId,
         @GrainId,
@@ -74,8 +74,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'ReadReminderRowsKey','
+    (
+        'ReadReminderRowsKey','
     SELECT
         GrainId,
         ReminderName,
@@ -90,8 +90,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'ReadReminderRowKey','
+    (
+        'ReadReminderRowKey','
     SELECT
         GrainId,
         ReminderName,
@@ -107,8 +107,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'ReadRangeRows1Key','
+    (
+        'ReadRangeRows1Key','
     SELECT
         GrainId,
         ReminderName,
@@ -124,8 +124,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'ReadRangeRows2Key','
+    (
+        'ReadRangeRows2Key','
     SELECT
         GrainId,
         ReminderName,
@@ -145,31 +145,31 @@ CREATE FUNCTION delete_reminder_row(
     ReminderNameArg OrleansRemindersTable.ReminderName%TYPE,
     VersionArg      OrleansRemindersTable.Version%TYPE
 )
-  RETURNS TABLE(row_count integer) AS
+    RETURNS TABLE(row_count integer) AS
 $func$
 DECLARE
-    RowCountVar int := 0;
+RowCountVar int := 0;
 BEGIN
 
 
-    DELETE FROM OrleansRemindersTable
-    WHERE
+DELETE FROM OrleansRemindersTable
+WHERE
         ServiceId = ServiceIdArg AND ServiceIdArg IS NOT NULL
-        AND GrainId = GrainIdArg AND GrainIdArg IS NOT NULL
-        AND ReminderName = ReminderNameArg AND ReminderNameArg IS NOT NULL
-        AND Version = VersionArg AND VersionArg IS NOT NULL;
+  AND GrainId = GrainIdArg AND GrainIdArg IS NOT NULL
+  AND ReminderName = ReminderNameArg AND ReminderNameArg IS NOT NULL
+  AND Version = VersionArg AND VersionArg IS NOT NULL;
 
-    GET DIAGNOSTICS RowCountVar = ROW_COUNT;
+GET DIAGNOSTICS RowCountVar = ROW_COUNT;
 
-    RETURN QUERY SELECT RowCountVar;
+RETURN QUERY SELECT RowCountVar;
 
 END
 $func$ LANGUAGE plpgsql;
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'DeleteReminderRowKey','
+    (
+        'DeleteReminderRowKey','
     SELECT * FROM delete_reminder_row(
         @ServiceId,
         @GrainId,
@@ -180,8 +180,8 @@ VALUES
 
 INSERT INTO OrleansQuery(QueryKey, QueryText)
 VALUES
-(
-    'DeleteReminderRowsKey','
+    (
+        'DeleteReminderRowsKey','
     DELETE FROM OrleansRemindersTable
     WHERE
         ServiceId = @ServiceId AND @ServiceId IS NOT NULL;
