@@ -33,7 +33,7 @@ jobs:
           
       - name: Build and Package
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
+          VERSION="${{ steps.version.outputs.value }}"
 
           dotnet nuget add source --username gh-actions --password ${{ secrets.GITHUB_TOKEN }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/omnicave/index.json"
           
