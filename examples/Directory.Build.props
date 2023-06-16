@@ -1,5 +1,6 @@
 <Project>
     <PropertyGroup>
         <IsPackable>false</IsPackable>
+        <OrleansVersion>7.1.2</OrleansVersion>
     </PropertyGroup>
 </Project>

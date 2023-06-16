@@ -76,4 +76,5 @@ public class BatchingDataOperationContext : IDataOperationContext
     }
 
     public IEntityRepository Entities => _entities;
+    public IEntityRepository GetEntityRepository() => _entities;
 }

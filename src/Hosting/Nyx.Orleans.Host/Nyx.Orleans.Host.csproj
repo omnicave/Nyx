@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.4" />
     <PackageReference Include="Npgsql" Version="6.0.6" />
-    <PackageReference Include="OrleansDashboard" Version="$(OrleansVersion)" />
+    <PackageReference Include="OrleansDashboard" Version="$(OrleansDashboardVersion)" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="Microsoft.Orleans.Server" Version="$(OrleansVersion)" />
     <PackageReference Include="Microsoft.Orleans.Serialization.NewtonsoftJson" Version="$(OrleansVersion)" />

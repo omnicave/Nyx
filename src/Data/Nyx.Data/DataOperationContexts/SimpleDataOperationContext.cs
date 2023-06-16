@@ -53,6 +53,9 @@ public class SimpleDataOperationContext : IDataOperationContext
     }
 
     public IEntityRepository Entities => _entities;
+    
+    public IEntityRepository GetEntityRepository() => _entities;
+
 
     class SimpleDataChangeOperation : IDataChangeOperation
     {

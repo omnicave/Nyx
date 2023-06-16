@@ -71,6 +71,9 @@ public class TransactionalDataOperationContext : IDataOperationContext
     }
 
     public IEntityRepository Entities => _entities;
+    
+    public IEntityRepository GetEntityRepository() => _entities;
+
 
     class TransactionalDataFetchOperation : IDataFetchOperation
     {
