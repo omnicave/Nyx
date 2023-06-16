@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net7.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Hosting\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
+    <ProjectReference Include="..\..\..\src\Orleans\Nyx.Orleans.Client\Nyx.Orleans.Client.csproj" />
+    <ProjectReference Include="..\orleansdata.shared\orleansdata.shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+
+  </ItemGroup>
+
+</Project>

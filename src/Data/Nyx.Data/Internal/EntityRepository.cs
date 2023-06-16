@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Nyx.Data.Internal;
 
-public class EntityRepository : IEntityRepository, IDisposable
+internal class EntityRepository : IEntityRepository, IDisposable
 {
     private readonly IDataOperationContext _context;
     private readonly IServiceProvider _serviceProvider;

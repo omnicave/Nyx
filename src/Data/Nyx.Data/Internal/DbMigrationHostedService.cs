@@ -25,10 +25,11 @@ namespace Nyx.Data.Internal
         
         public async Task StartAsync(CancellationToken cancellationToken)
         {
+            _log.LogTrace("DbMigrationHostedService::StartAsync() >>");
             using var scope = _serviceProvider.CreateScope();
 
             var dbContext = scope.ServiceProvider.GetRequiredService<RootDbContext>();
-            
+
             _log.LogInformation("Checking database ...");
             var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken: cancellationToken);
             _log.LogInformation("Checking database ... done");
@@ -39,6 +40,8 @@ namespace Nyx.Data.Internal
                 await dbContext.Database.MigrateAsync(cancellationToken: cancellationToken);
                 _log.LogInformation("Completed database migration");
             }
+            
+            _log.LogTrace("DbMigrationHostedService::StartAsync() <<");
         }
 
         public Task StopAsync(CancellationToken cancellationToken)
