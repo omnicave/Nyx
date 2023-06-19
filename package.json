@@ -1,0 +1,28 @@
+{
+  "name": "nyx.framework",
+  "version": "0.0.1",
+  "description": "General framework of tools for .NET",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "example": "examples",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@semantic-release/exec": "^6.0.3",
+    "semantic-release": "^21.0.5"
+  },
+  "devDependencies": {
+    "cz-conventional-changelog": "^3.3.0"
+  },
+  "config": {
+    "commitizen": {
+      "path": "./node_modules/cz-conventional-changelog"
+    }
+  }
+}
