@@ -85,6 +85,36 @@ public static class OrleansSiloHostBuilderExtensions
         return builder;
     }
     
+    public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name, Func<IConfiguration, string> connectionStringProc)
+    {
+        builder.SiloBuilderExtraConfiguration.Add(
+            (context, siloBuilder) => siloBuilder.AddAdoNetGrainStorage(
+                name,
+                optionsBuilder => optionsBuilder.Configure(options =>
+                    {
+                        options.ConnectionString = connectionStringProc(context.Configuration);
+                        options.Invariant = "Npgsql";
+                        options.GrainStorageSerializer = new JsonGrainStorageSerializer(
+                            new OrleansJsonSerializer(
+                                new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
+                                {
+                                    JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
+                                })
+                            )
+                        );
+
+                    }
+                )
+            )
+        );
+
+        builder.ConfigureServices((context, collection) =>
+            collection.AddSingleton(new OrleansPostgresConnection(connectionStringProc(context.Configuration)))
+        );
+        
+        return builder;
+    }
+    
     public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name, string connectionString)
     {
         builder.SiloBuilderExtraConfiguration.Add(
