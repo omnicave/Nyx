@@ -109,14 +109,17 @@ public class TextCommand : ICliCommand
 {
     private readonly IAnsiConsole _console;
     private readonly IInvocationContext _invocationContext;
+    private readonly ILogger<TextCommand> _log;
 
-    public TextCommand(IAnsiConsole console, IInvocationContext invocationContext)
+    public TextCommand(IAnsiConsole console, IInvocationContext invocationContext, ILogger<TextCommand> log)
     {
         _console = console;
         _invocationContext = invocationContext;
+        _log = log;
     }
     public async Task Execute()
     {
+        _log.LogInformation("This is a log line");
         _console.WriteLine();
         _console.WriteLine("bold", Style.Parse("bold"));
         _console.WriteLine("invert", Style.Parse("invert"));

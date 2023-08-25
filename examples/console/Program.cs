@@ -24,6 +24,7 @@ await CommandLineHostBuilder.Create(args)
     // {
     //     Console.WriteLine(randomTextService.GetRandomSentence(max));
     // })
+    .ConfigureLoggingDefaults()
     .RegisterCommandsFromThisAssembly()
     .AddOutputFormatGlobalFlag()
     .AddGlobalOption<GlobalOption>("globalone", "g")
