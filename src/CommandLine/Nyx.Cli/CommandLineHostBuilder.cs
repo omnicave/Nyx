@@ -209,7 +209,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             // services.AddSingleton(context);
             // services.AddSingleton(context.BindingContext);
             // services.AddSingleton(context.Console);
-            // services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+            services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
             // services.AddTransient<IInvocationResult>(_ => context.InvocationResult ?? throw new InvalidOperationException("Cannot obtain InvocationResult"));
             // services.AddTransient(_ => context.ParseResult);
 

@@ -51,10 +51,11 @@ public static partial class CommandLineHostBuilderExtensions
     public static T ConfigureLoggingDefaults<T>(this T hostBuilder)
         where T : IHostBuilder
     {
-        var invocationContext = (InvocationContextHelper)hostBuilder.Properties[CommandLineHostBuilder.InvocationContext];
-        
         hostBuilder.ConfigureLogging((hostingContext, logging) =>
         {
+            var invocationContext =
+                (InvocationContextHelper)hostingContext.Properties[CommandLineHostBuilder.InvocationContext];
+            
             logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
             logging.AddConsoleFormatter<NyxConsoleFormatter, NyxConsoleFormatterOptions>();
             logging.AddConsole(options => { options.FormatterName = NyxConsoleFormatter.FormatterName; });
