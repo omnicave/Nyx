@@ -1,12 +1,15 @@
 using System;
 using System.CommandLine;
+using System.CommandLine.Invocation;
 using System.CommandLine.NamingConventionBinder;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Nyx.Cli;
 using Nyx.Cli.CommandBuilders;
+using Nyx.Cli.Logging;
 using Nyx.Cli.Rendering;
 
 // ReSharper disable once CheckNamespace
@@ -44,4 +47,34 @@ public static partial class CommandLineHostBuilderExtensions
         ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
         return builder;
     }
+
+    public static T ConfigureLoggingDefaults<T>(this T hostBuilder)
+        where T : IHostBuilder
+    {
+        var invocationContext = (InvocationContextHelper)hostBuilder.Properties[CommandLineHostBuilder.InvocationContext];
+        
+        hostBuilder.ConfigureLogging((hostingContext, logging) =>
+        {
+            logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
+            logging.AddConsoleFormatter<NyxConsoleFormatter, NyxConsoleFormatterOptions>();
+            logging.AddConsole(options => { options.FormatterName = NyxConsoleFormatter.FormatterName; });
+            logging.AddDebug();
+            logging.AddEventSourceLogger();
+            logging.Configure(options =>
+            {
+                options.ActivityTrackingOptions = ActivityTrackingOptions.SpanId
+                                                  | ActivityTrackingOptions.TraceId
+                                                  | ActivityTrackingOptions.ParentId;
+            });
+            if (invocationContext.TryGetSingleOptionValue<LogLevel>(LogLevelOption.OptionName, out var customLevel))
+            {
+                logging.SetMinimumLevel(customLevel);
+            }
+
+            logging.AddFilter("Microsoft", LogLevel.Error);
+            logging.AddFilter("System", LogLevel.Error);
+        });
+
+        return hostBuilder;
+    } 
 }
