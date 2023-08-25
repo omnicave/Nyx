@@ -83,6 +83,8 @@ public interface ICommandLineHostBuilder : IHostBuilder
 
 public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 {
+    internal const string InvocationContext = "InvocationContext";
+    
     public static ICommandLineHostBuilder Create(string name, string[] args) => new CommandLineHostBuilder(name, args);
     public static ICommandLineHostBuilder Create(string[] args) => new CommandLineHostBuilder(Assembly.GetEntryAssembly()?.GetName()?.Name ?? "Nyx.Cli", args);
 
@@ -200,27 +202,8 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         var invocationContext = new InvocationContextHelper(parseResult);
         var hostBuilder = _hostBuilderFactory(invocationContext);
 
-        hostBuilder.ConfigureLogging((hostingContext, logging) =>
-        {
-            logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-            logging.AddConsoleFormatter<NyxConsoleFormatter, NyxConsoleFormatterOptions>();
-            logging.AddConsole(options => { options.FormatterName = NyxConsoleFormatter.FormatterName; });
-            logging.AddDebug();
-            logging.AddEventSourceLogger();
-            logging.Configure(options =>
-            {
-                options.ActivityTrackingOptions = ActivityTrackingOptions.SpanId
-                                                  | ActivityTrackingOptions.TraceId
-                                                  | ActivityTrackingOptions.ParentId;
-            });
-            if (invocationContext.TryGetSingleOptionValue<LogLevel>(LogLevelOption.OptionName, out var customLevel))
-            {
-                logging.SetMinimumLevel(customLevel);
-            }
-
-            logging.AddFilter("Microsoft", LogLevel.Error);
-            logging.AddFilter("System", LogLevel.Error);
-        });
+        hostBuilder.Properties[InvocationContext] = invocationContext;
+        
         hostBuilder.ConfigureServices(services =>
         {
             // services.AddSingleton(context);
