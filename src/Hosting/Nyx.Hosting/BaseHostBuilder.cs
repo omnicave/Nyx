@@ -11,7 +11,7 @@ public abstract class BaseHostBuilder : IHostBuilder
     public abstract IHost Build();
 
     /// <inheritdoc />
-    public IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
+    public virtual IDictionary<object, object> Properties { get; } = new Dictionary<object, object>();
 
     /// <inheritdoc />
     public IHostBuilder ConfigureAppConfiguration(

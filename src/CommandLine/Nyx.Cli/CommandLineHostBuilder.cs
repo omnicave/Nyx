@@ -100,7 +100,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private Func<IHost, CancellationToken, Task> _hostShutdownProc =
         (host, cancellationToken) => host.StopAsync(cancellationToken);
 
-    private static readonly Func<IInvocationContext, IHostBuilder> DefaultHostBuilderFactory = (_ =>
+    public static readonly Func<IInvocationContext, IHostBuilder> DefaultHostBuilderFactory = (_ =>
             new HostBuilder()
                 .ConfigureHostConfiguration(
                     config =>
@@ -202,17 +202,15 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         var invocationContext = new InvocationContextHelper(parseResult);
         var hostBuilder = _hostBuilderFactory(invocationContext);
 
+        this.Properties[InvocationContext] = invocationContext;
         hostBuilder.Properties[InvocationContext] = invocationContext;
         
         hostBuilder.ConfigureServices(services =>
         {
-            // services.AddSingleton(context);
-            // services.AddSingleton(context.BindingContext);
-            // services.AddSingleton(context.Console);
+            services.AddSingleton(parseResult);
+            services.AddSingleton<IInvocationContext>(invocationContext);
             services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
-            // services.AddTransient<IInvocationResult>(_ => context.InvocationResult ?? throw new InvalidOperationException("Cannot obtain InvocationResult"));
-            // services.AddTransient(_ => context.ParseResult);
-
+            
             services.AddOutputFormattingSupport();
 
             if (invocationContext.TryGetSingleOptionValue<LogLevel>(LogLevelOption.OptionName,
@@ -258,8 +256,8 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
         var parseResult = parser.Parse(_args);
 
-        var hostBuilder = BuildInternalHostBuilder(parseResult);
-        hostBuilder.ConfigureServices(services =>
+        var internalHostBuilder = BuildInternalHostBuilder(parseResult);
+        internalHostBuilder.ConfigureServices(services =>
         {
             services.AddSingleton(_ => parseResult);
             
@@ -268,7 +266,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                 services.AddSingleton(item.commandType);
         });
         
-        var host = hostBuilder.Build();
+        var host = internalHostBuilder.Build();
 
         var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
         lifetime.ApplicationStarted
@@ -307,10 +305,6 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             async (context, next) =>
             {
                 var argsRemaining = context.ParseResult.UnparsedTokens.ToArray();
-
-                //hostBuilder.UseInvocationLifetime(context);
-
-                // using var host = hostBuilder.Build();
 
                 // ReSharper disable once AccessToDisposedClosure
                 context.BindingContext.AddService(typeof(IHost), _ => CommandLineHost.PrimaryInstance);

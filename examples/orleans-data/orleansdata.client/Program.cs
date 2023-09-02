@@ -57,15 +57,17 @@ async Task Main(IHost host)
     Console.WriteLine("Exiting ... ");
 }
 
-var client = new OrleansClientHostBuilder("orleansdata.client", "orleans-data", "orleans-data", args)
-    .ConfigureClient(builder => builder.UseStaticClustering(new IPEndPoint(IPAddress.Loopback, 12000)))
-    .ConfigureCli(
-        builder => builder.WithRootCommandHandler(
-            async (IHost host) => { await Main(host); }
-            )
-        )
+var host = CommandLineHostBuilder.Create("orleansdata.client", args)
+    .UseHostBuilderFactory(ctx =>
+        new OrleansClientHostBuilder("orleansdata.client", "orleans-data", "orleans-data", args)
+            .ConfigureClient(builder => builder.UseStaticClustering(new IPEndPoint(IPAddress.Loopback, 12000)))
+    )
+    .WithRootCommandHandler(
+        async (IHost host) => { await Main(host); }
+    )
     .Build();
 
 
-await client.RunAsync();
+
+await host.RunAsync();
 

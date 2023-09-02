@@ -40,8 +40,15 @@ public abstract class BaseHostResolvedCommandHandler : ICommandHandler
                 if (arguments.ContainsKey(key))
                     return arguments[key];
                 else
-                    throw new InvalidOperationException(
-                        "Cannot build parameter list for method because matching argument/option not present.");
+                {
+                    if (!p.IsOptional)
+                    {
+                        throw new InvalidOperationException(
+                            "Cannot build parameter list for method because matching argument/option not supplied.");
+                    }
+
+                    return p.DefaultValue;
+                }
             }
             else
             {

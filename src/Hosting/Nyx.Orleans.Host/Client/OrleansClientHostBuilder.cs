@@ -1,7 +1,4 @@
-using Nyx.Cli;
 using Nyx.Hosting;
-using Nyx.Orleans.Serialization;
-using Orleans;
 using Orleans.Configuration;
 using Orleans.Serialization;
 
@@ -25,7 +22,6 @@ public class OrleansClientHostBuilder : BaseHostBuilder
     }
 
     internal readonly List<Action<IClientBuilder>> ClientExtraConfiguration = new();
-    internal readonly List<Action<ICommandLineHostBuilder>> CliExtraConfiguration = new();
 
     public override IHost Build()
     {
@@ -43,33 +39,39 @@ public class OrleansClientHostBuilder : BaseHostBuilder
             })
             .ToList();
 
-        var cli = CommandLineHostBuilder.Create(_clientName, _args ?? Array.Empty<string>());
-        cli.AddOrleansClusterClient(x);
+        var hostBuilder = new HostBuilder()
+            .AddOrleansClusterClient(x);
+        
+        ApplyHostBuilderOperations(hostBuilder);
+        return hostBuilder.Build();
 
-        foreach (var item in CliExtraConfiguration)
-        {
-            item(cli);
-        }
+        // var cli = CommandLineHostBuilder.Create(_clientName, _args ?? Array.Empty<string>());
+        // cli.AddOrleansClusterClient(x);
+        //
+        // foreach (var item in CliExtraConfiguration)
+        // {
+        //     item(cli);
+        // }
+        //
+        // if (_isDaemonOrleansClient)
+        // {
+        //     cli.WithRootCommandHandler(async (IHost host) =>
+        //     {
+        //         var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+        //
+        //         var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        //         applicationLifetime.ApplicationStopping
+        //             .Register(obj =>
+        //                 {
+        //                     var tcs = (TaskCompletionSource<object>)obj;
+        //                     tcs.TrySetResult(null);
+        //                 },
+        //                 waitForStop);
+        //         //
+        //         await waitForStop.Task;
+        //     });
+        // }
 
-        if (_isDaemonOrleansClient)
-        {
-            cli.WithRootCommandHandler(async (IHost host) =>
-            {
-                var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
-
-                var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-                applicationLifetime.ApplicationStopping
-                    .Register(obj =>
-                        {
-                            var tcs = (TaskCompletionSource<object>)obj;
-                            tcs.TrySetResult(null);
-                        },
-                        waitForStop);
-                //
-                await waitForStop.Task;
-            });
-        }
-
-        return cli.Build();
+        // return cli.Build();
     }
 }
