@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
     <ProjectReference Include="..\..\..\src\Data\Nyx.Data\Nyx.Data.csproj" />
     <ProjectReference Include="..\..\..\src\Hosting\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
     <ProjectReference Include="..\..\..\src\Orleans\Nyx.Orleans.Data\Nyx.Orleans.Data.csproj" />

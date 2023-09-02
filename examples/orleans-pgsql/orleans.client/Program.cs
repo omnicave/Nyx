@@ -41,39 +41,40 @@ using Orleans.Runtime;
 using orleans.shared;
 using Orleans.Streams;
 
-var client = new OrleansClientHostBuilder("orleans.client", "ExampleOrleansCluster", "Ex1")
-    .ConfigureClient(builder =>
-    {
-        builder.AddNatsClustering()
-            .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName);
-    })
-    .ConfigureCli(
-        builder => builder.WithRootCommandHandler(
-            async (IHost host) =>
+var host = CommandLineHostBuilder.Create("orleans.client", args)
+    .UseHostBuilderFactory(ctx =>
+        new OrleansClientHostBuilder("orleans.client", "ExampleOrleansCluster", "Ex1")
+            .ConfigureClient(builder =>
             {
-                var client = host.Services.GetRequiredService<IClusterClient>();
-                var testStreamListener = client.GetGrain<ITestStreamListenerGrain>(Guid.Empty);
-                await testStreamListener.Start();
+                builder.AddNatsClustering()
+                    .AddNatsStreams(orleans.shared.Constants.NatsStreamProviderName);
+            })
+    )
+    .WithRootCommandHandler(
+        async (IHost host) =>
+        {
+            var client = host.Services.GetRequiredService<IClusterClient>();
+            var testStreamListener = client.GetGrain<ITestStreamListenerGrain>(Guid.Empty);
+            await testStreamListener.Start();
 
-                var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProviderName)
-                    .GetStream<TestStreamMessage>(StreamConstants.StreamNamespace, StreamConstants.StreamId);
+            var stream = client.GetStreamProvider(orleans.shared.Constants.NatsStreamProviderName)
+                .GetStream<TestStreamMessage>(StreamConstants.StreamNamespace, StreamConstants.StreamId);
 
-                int i = 0;
-                while (i < 20)
-                {
-                    await stream.OnNextAsync(new TestStreamMessage($"Iteration from client {i++}", i));
-                }
-
-                Console.WriteLine("Press any key to exit ... ");
-                Console.ReadKey();
-
-                Console.WriteLine("Exiting ... ");
+            int i = 0;
+            while (i < 20)
+            {
+                await stream.OnNextAsync(new TestStreamMessage($"Iteration from client {i++}", i));
             }
-        )
+
+            Console.WriteLine("Press any key to exit ... ");
+            Console.ReadKey();
+
+            Console.WriteLine("Exiting ... ");
+        }
     )
     .Build();
 
-await client.RunAsync();
+await host.RunAsync();
 
 // var g = await client.StartJob(new TestJob());
 

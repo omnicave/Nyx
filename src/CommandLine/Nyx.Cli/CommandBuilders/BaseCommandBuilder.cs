@@ -8,6 +8,13 @@ namespace Nyx.Cli.CommandBuilders;
 
 internal abstract class BaseCommandBuilder
 {
+    protected class BaseCommand<T> : Command
+    {
+        public BaseCommand(string name, string? description = null) : base(name, description)
+        {
+        }
+    }
+    
     protected void PopulateCommandArgumentsAndOptions(Command command, Command? rootCommand, ParameterInfo[] parameters, HandlerDescriptor descriptor)
     {
         var cliParameterBuilder = new CliParameterBuilder();

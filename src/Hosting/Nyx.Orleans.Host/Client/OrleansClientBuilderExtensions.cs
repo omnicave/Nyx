@@ -1,10 +1,5 @@
 using System.Net;
-using Nyx.Cli;
-using Orleans;
 using Orleans.Configuration;
-using Orleans.Hosting;
-using Orleans.Runtime;
-using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
 namespace Nyx.Orleans.Host;
 
@@ -54,12 +49,6 @@ public static class OrleansClientHostBuilderExtensions
     public static OrleansClientHostBuilder ConfigureClient(this OrleansClientHostBuilder builder, Action<IClientBuilder> d)
     {
         builder.ClientExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
-        return builder;
-    }
-    
-    public static OrleansClientHostBuilder ConfigureCli(this OrleansClientHostBuilder builder, Action<ICommandLineHostBuilder> d)
-    {
-        builder.CliExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
         return builder;
     }
 }

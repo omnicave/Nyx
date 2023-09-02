@@ -4,13 +4,9 @@ using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
-using Nyx.Cli;
 using Nyx.Hosting;
 using Nyx.Orleans.Host.Db;
-using Nyx.Orleans.Serialization;
-using Orleans;
 using Orleans.Configuration;
-using Orleans.Hosting;
 using Orleans.Serialization;
 using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
@@ -20,18 +16,22 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
 {
     private readonly string _clusterId;
     private readonly string _serviceId;
-    private readonly string[] _args;
     
     private readonly string _title;
     private readonly string _version;
+    private readonly int _gatewayPort;
+    private readonly int _siloPort;
+    private readonly int _dashboardPort;
+    private readonly int _apiPort;
+    private readonly int _healthCheckPort;
     private Action<MvcNewtonsoftJsonOptions> _configureJsonSerializer = options => { };
     internal Action<HostBuilderContext, ISiloBuilder>? ClusteringConfiguration;
     internal readonly List<Action<HostBuilderContext, ISiloBuilder>> SiloBuilderExtraConfiguration = new();
     internal Action<HostBuilderContext, ISiloBuilder> PubStoreConfiguration = (context, builder) => { };
     internal readonly List<Action<IApplicationBuilder>> ApplicationBuilderConfiguration = new();
-    internal readonly List<Action<ICommandLineHostBuilder>> CommandLineHostConfiguration = new();
+    private readonly WebApplicationBuilder _webApplicationBuilder;
 
-    public static OrleansSiloHostBuilder CreateSiloHost(string clusterId, string serviceId, string? title = null, string[]? args = null)
+    public static OrleansSiloHostBuilder CreateSiloHost(string clusterId, string serviceId, string? title = null, string[]? args = null, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
     {
         var entryAssembly = Assembly.GetEntryAssembly() 
                             ?? throw new InvalidOperationException("Entry assembly not available.");
@@ -41,43 +41,61 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
             serviceId,
             title ?? entryAssembly.GetCustomAttribute<AssemblyTitleAttribute>()?.Title ?? "Orleans Host Default Name",
             args ?? Array.Empty<string>(),
-            entryAssembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version ?? "0.1.0"
+            entryAssembly.GetCustomAttribute<AssemblyVersionAttribute>()?.Version ?? "0.1.0",
+            gatewayPort: gatewayPort,
+            siloPort: siloPort,
+            dashboardPort: dashboardPort,
+            apiPort: apiPort,
+            healthCheckPort: healthCheckPort
         );
     }
     
-    public static OrleansSiloHostBuilder CreateBuilder(string[]? args)
+    public static OrleansSiloHostBuilder CreateBuilder(string[]? args, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
     {
         var entryAssembly = Assembly.GetEntryAssembly() 
                             ?? throw new InvalidOperationException("Entry assembly not available.");
 
         return CreateSiloHost(
-            entryAssembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company.ToLower() ?? throw new InvalidOperationException("[AssemblyCompanyAttribute] is missing and cannot generate orleans cluster id"), 
-            entryAssembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product.ToLower() ?? throw new InvalidOperationException("[AssemblyProductAttribute] is missing and cannot generate orleans service id"), args: args);
+            entryAssembly.GetCustomAttribute<AssemblyCompanyAttribute>()?.Company.ToLower() ??
+            throw new InvalidOperationException(
+                "[AssemblyCompanyAttribute] is missing and cannot generate orleans cluster id"),
+            entryAssembly.GetCustomAttribute<AssemblyProductAttribute>()?.Product.ToLower() ??
+            throw new InvalidOperationException(
+                "[AssemblyProductAttribute] is missing and cannot generate orleans service id"),
+            args: args,
+            gatewayPort: gatewayPort,
+            siloPort: siloPort,
+            dashboardPort: dashboardPort,
+            apiPort: apiPort,
+            healthCheckPort: healthCheckPort
+        );
     }
-    
-    protected OrleansSiloHostBuilder(
+
+    private OrleansSiloHostBuilder(
         string clusterId,
         string serviceId,
         string title, 
         string[] args,
-        string version)
+        string version,
+        int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
     {
+        _webApplicationBuilder = WebApplication.CreateBuilder(args);
         _clusterId = clusterId;
         _serviceId = serviceId;
         _title = title;
         _version = version;
-        _args = args;
+        _gatewayPort = gatewayPort;
+        _siloPort = siloPort;
+        _dashboardPort = dashboardPort;
+        _apiPort = apiPort;
+        _healthCheckPort = healthCheckPort;
     }
+
+    public override IDictionary<object, object> Properties => _webApplicationBuilder.Host.Properties;
 
     public OrleansSiloHostBuilder ConfigureApplicationBuilder(Action<IApplicationBuilder> appBuilderConfiguration)
     {
         ApplicationBuilderConfiguration.Add(appBuilderConfiguration);
-        return this;
-    }
-    
-    public OrleansSiloHostBuilder ConfigureCommandLineHost(Action<ICommandLineHostBuilder> commandLineHostConfiguration)
-    {
-        CommandLineHostConfiguration.Add(commandLineHostConfiguration);
         return this;
     }
     private void SetupWebApi(string title, WebApplicationBuilder builder, int apiPort, int healthCheckPort)
@@ -130,54 +148,16 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
         );
     }
 
-    class CliSiloHostBuilderBridge : IHostBuilder
-    {
-        private readonly OrleansSiloHostBuilder _parent;
-        private readonly int _gatewayPort;
-        private readonly int _siloPort;
-        private readonly int _dashboardPort;
-        private readonly int _apiPort;
-        private readonly int _healthCheckPort;
-
-        public CliSiloHostBuilderBridge(OrleansSiloHostBuilder parent, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
-        {
-            _parent = parent;
-            _gatewayPort = gatewayPort;
-            _siloPort = siloPort;
-            _dashboardPort = dashboardPort;
-            _apiPort = apiPort;
-            _healthCheckPort = healthCheckPort;
-        }
-
-        public IHost Build() => _parent.BuildActualHost(_gatewayPort, _siloPort, _dashboardPort, _apiPort, _healthCheckPort);
-
-        public IHostBuilder ConfigureAppConfiguration(Action<HostBuilderContext, IConfigurationBuilder> configureDelegate) => _parent.ConfigureAppConfiguration(configureDelegate);
-
-        public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate) => _parent.ConfigureContainer(configureDelegate);
-
-        public IHostBuilder ConfigureHostConfiguration(Action<IConfigurationBuilder> configureDelegate) => _parent.ConfigureHostConfiguration(configureDelegate);
-
-        public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate) => _parent.ConfigureServices(configureDelegate);
-
-        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(IServiceProviderFactory<TContainerBuilder> factory) where TContainerBuilder : notnull => _parent.UseServiceProviderFactory(factory);
-
-        public IHostBuilder UseServiceProviderFactory<TContainerBuilder>(Func<HostBuilderContext, IServiceProviderFactory<TContainerBuilder>> factory) where TContainerBuilder : notnull => _parent.UseServiceProviderFactory(factory);
-
-        public IDictionary<object, object> Properties => _parent.Properties;
-    }
-
     protected IHost BuildActualHost(int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
     {
-        var webApplicationBuilder = WebApplication.CreateBuilder(_args);
+        _webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
+
+        SetupOrleans(_webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
+        SetupWebApi(_title, _webApplicationBuilder, apiPort, healthCheckPort);
+
+        ApplyHostBuilderOperations(_webApplicationBuilder.Host);
         
-        webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
-
-        SetupOrleans(webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
-        SetupWebApi(_title, webApplicationBuilder, apiPort, healthCheckPort);
-
-        ApplyHostBuilderOperations(webApplicationBuilder.Host);
-
-        var app = webApplicationBuilder.Build();
+        var app = _webApplicationBuilder.Build();
         SetupAppBuilder(app.Environment, app, healthCheckPort);
         app.MapControllers();
         foreach (var item in ApplicationBuilderConfiguration)
@@ -190,49 +170,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
 
     public override IHost Build()
     {
-        var rng = new Random();
-        var self = this;
-        var cliBuilder = CommandLineHostBuilder.Create($"{_clusterId}.{_serviceId}", _args);
-            
-            cliBuilder
-            .UseHostBuilderFactory(ctx =>
-            {
-                var gatewayPort = ctx.GetSingleOptionValue<int>("gatewayPort", 12000 + rng.Next(999));
-                var siloPort = ctx.GetSingleOptionValue<int>("siloPort", 13000 + rng.Next(999));
-                var dashboardPort = ctx.GetSingleOptionValue<int>("dashboardPort", 5002);
-                var apiPort = ctx.GetSingleOptionValue<int>("apiPort", 5001);
-                var healthCheckPort = ctx.GetSingleOptionValue<int>("healthCheckPort", 5081);
-                return new CliSiloHostBuilderBridge(self, gatewayPort, siloPort, dashboardPort, apiPort,
-                    healthCheckPort);
-            })
-            .AddGlobalOption<int>("gatewayPort")
-            .AddGlobalOption<int>("siloPort")
-            .AddGlobalOption<int>("dashboardPort")
-            .AddGlobalOption<int>("apiPort")
-            .AddGlobalOption<int>("healthCheckPort")
-            .WithRootCommandHandler(async (IHost host) =>
-            {
-                var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
-
-                var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-                applicationLifetime.ApplicationStopping
-                    .Register(obj =>
-                        {
-                            var tcs = (TaskCompletionSource<object>)obj;
-                            tcs.TrySetResult(null);
-                        },
-                        waitForStop);
-                //
-                await waitForStop.Task;
-            });
-
-        foreach (var item in CommandLineHostConfiguration)
-        {
-            item(cliBuilder);
-        }
-
-        return cliBuilder
-            .Build();
+        return BuildActualHost(_gatewayPort, _siloPort, _dashboardPort, _apiPort, _healthCheckPort);
     }
 
     private void SetupOrleans(ConfigureHostBuilder host, int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002)

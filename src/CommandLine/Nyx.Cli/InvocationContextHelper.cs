@@ -119,6 +119,8 @@ class InvocationContextHelper : IInvocationContext
         
         _invocationContext.ExitCode = exitCode;
     }
+
+    public string CommandName => _parseResult.CommandResult.Command.Name;
 }
 
 public interface IInvocationContext
@@ -129,4 +131,5 @@ public interface IInvocationContext
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue value, TValue defaultValueIfNotFound);
 
     void SetExitCode(int exitCode);
+    string CommandName { get; }
 }
