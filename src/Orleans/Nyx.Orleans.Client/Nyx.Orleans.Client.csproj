@@ -8,8 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="$(OrleansVersion)" />
-    <PackageReference Include="Microsoft.Orleans.Streaming" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.2.1" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="7.2.1" />
   </ItemGroup>
 
   <ItemGroup>
