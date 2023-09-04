@@ -1,16 +1,10 @@
 using System;
-using System.CommandLine;
-using System.CommandLine.Invocation;
-using System.CommandLine.NamingConventionBinder;
-using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Nyx.Cli;
 using Nyx.Cli.CommandBuilders;
 using Nyx.Cli.Logging;
-using Nyx.Cli.Rendering;
 
 // ReSharper disable once CheckNamespace
 namespace Nyx.Cli;
@@ -46,6 +40,27 @@ public static partial class CommandLineHostBuilderExtensions
         builder.ConfigureServices((context, collection) => collection.AddScoped<T>(factory));
         ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
         return builder;
+    }
+
+    public static ICommandLineHostBuilder WithLongRunningRootCommandHandler(ICommandLineHostBuilder builder)
+    {
+        return builder.WithRootCommandHandler(
+            async (IHost host) =>
+            {
+                var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+
+                var waitForStop = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+                applicationLifetime.ApplicationStopping
+                    .Register(obj =>
+                        {
+                            var tcs = (TaskCompletionSource?)obj;
+                            tcs?.TrySetResult();
+                        },
+                        waitForStop);
+                //
+                await waitForStop.Task;
+            }
+        );
     }
 
     public static T ConfigureLoggingDefaults<T>(this T hostBuilder)
