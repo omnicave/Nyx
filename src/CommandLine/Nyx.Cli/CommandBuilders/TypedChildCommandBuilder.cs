@@ -10,6 +10,7 @@ using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nyx.Cli.CommandHandlers;
+using Nyx.Cli.Internal;
 
 namespace Nyx.Cli.CommandBuilders;
 
@@ -20,8 +21,9 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
     private readonly string _commandName;
     private readonly string? _commandAlias;
     private readonly string _description;
-    private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description)> _subCommands;
+    private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description, CliHostBuilderFactoryAttribute? HostBuilderFactoryAttribute)> _subCommands;
     private readonly MethodInfo? _commandExecuteMethodInfo;
+    private readonly ICliHostBuilderFactory? _commandHostBuilderFactory = null;
     private bool SingleCommandMode => !_subCommands.Any() && _commandExecuteMethodInfo != null;
         
     public TypedChildCommandBuilder(Command rootCommand)
@@ -31,6 +33,10 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
             
         var cliCommandAttribute = typeInfo.GetCustomAttribute<CliCommandAttribute>();
         var descriptionAttribute = typeInfo.GetCustomAttribute<DescriptionAttribute>();
+
+        var hostBuilderFactory = typeInfo.GetCustomAttribute<CliHostBuilderFactoryAttribute>();
+        if (hostBuilderFactory != null)
+            _commandHostBuilderFactory = hostBuilderFactory.Instance;
 
         if (cliCommandAttribute == null)
         {
@@ -55,7 +61,9 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
                     Info: method,
                     SubCommandAttribute: method.GetCustomAttribute<CliSubCommandAttribute>() ??
                                          CliSubCommandAttribute.Default,
-                    Description: method.GetCustomAttribute<DescriptionAttribute>() ?? DescriptionAttribute.Default)
+                    Description: method.GetCustomAttribute<DescriptionAttribute>() ?? DescriptionAttribute.Default,
+                    SubCommandHostFactory: method.GetCustomAttribute<CliHostBuilderFactoryAttribute>()
+                    )
             )
             .Where(
                 x => !ReferenceEquals(CliSubCommandAttribute.Default, x.SubCommandAttribute)
@@ -69,6 +77,8 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
 
         if (executeMethod == null && _subCommands.Count == 0) 
             throw new InvalidOperationException("Command doesn't have any subcommands or an Execute method");
+        
+        
     }
 
     private void PopulateCommandFromMethodInfo(MethodInfo mi, Command command)
@@ -89,9 +99,11 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
 
     public Command Build()
     {
-        var parentCommand = new Command(
+        Func<IInvocationContext,IHostBuilder>? act = _commandHostBuilderFactory != null ? (ctx => _commandHostBuilderFactory.CreateHostBuilder(ctx)) : null;
+        var parentCommand = new NyxSystemConsoleCommand<TCliCommand>(
             _commandName,
-            _description
+            _description,
+            act
         );
 
         if (_commandAlias != null) 
@@ -104,7 +116,17 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
 
         foreach (var method in _subCommands)
         {
-            var subCommand = new Command(method.SubCommandAttribute.Name, method.Description.Description);
+            Func<IInvocationContext, IHostBuilder>? subHostBuilderFactory = null;
+            if (method.HostBuilderFactoryAttribute != null)
+            {
+                subHostBuilderFactory = ctx => method.HostBuilderFactoryAttribute.Instance.CreateHostBuilder(ctx);
+            }
+            else if (_commandHostBuilderFactory != null)
+            {
+                subHostBuilderFactory = ctx => _commandHostBuilderFactory.CreateHostBuilder(ctx);
+            }
+            
+            var subCommand = new NyxSystemConsoleCommand<TCliCommand>(method.SubCommandAttribute.Name, method.Description.Description, subHostBuilderFactory);
             if (method.SubCommandAttribute.HasAlias)
                 subCommand.AddAlias(method.SubCommandAttribute.Alias);
             PopulateCommandFromMethodInfo(method.Info, subCommand);

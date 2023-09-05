@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Nyx.Cli;
 
-class InvocationContextHelper : IInvocationContext
+internal class InvocationContextHelper : IInvocationContext
 {
     private readonly ParseResult _parseResult;
     private InvocationContext? _invocationContext = null;
@@ -121,6 +121,8 @@ class InvocationContextHelper : IInvocationContext
     }
 
     public string CommandName => _parseResult.CommandResult.Command.Name;
+
+    public ParseResult ParseResult => _parseResult;
 }
 
 public interface IInvocationContext

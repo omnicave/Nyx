@@ -19,6 +19,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Logging.Console;
 using Nyx.Cli.CommandBuilders;
+using Nyx.Cli.Internal;
 using Nyx.Cli.Logging;
 using Nyx.Cli.Rendering;
 using Nyx.Hosting;
@@ -94,7 +95,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private readonly List<(Type commandType, Func<Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
     private readonly List<Action<CommandLineBuilder>> _cliBuilderHandlers = new();
         
-    private Func<IInvocationContext, IHostBuilder> _hostBuilderFactory = DefaultHostBuilderFactory;
+    private Func<IInvocationContext, IHostBuilder>? _hostBuilderFactory = null;
     private Func<IHost, CancellationToken, Task> _hostStartupProc =
         (host, cancellationToken) => host.StartAsync(cancellationToken);
     private Func<IHost, CancellationToken, Task> _hostShutdownProc =
@@ -197,17 +198,27 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         return this;
     }
 
-    protected IHostBuilder BuildInternalHostBuilder(ParseResult parseResult)
+    private IHostBuilder BuildInternalHostBuilder(InvocationContextHelper invocationContext)
     {
-        var invocationContext = new InvocationContextHelper(parseResult);
-        var hostBuilder = _hostBuilderFactory(invocationContext);
+        Func<IInvocationContext, IHostBuilder>? resolvedHostBuilderFactory = null;
+
+        if (invocationContext.ParseResult.CommandResult.Command is INyxSystemConsoleCommand c)
+            resolvedHostBuilderFactory = c.HostBuilderFactory;
+
+        if (resolvedHostBuilderFactory == null && _hostBuilderFactory != null)
+            resolvedHostBuilderFactory = _hostBuilderFactory;
+
+        if (resolvedHostBuilderFactory == null)
+            resolvedHostBuilderFactory = DefaultHostBuilderFactory;
+        
+        var hostBuilder = resolvedHostBuilderFactory(invocationContext);
 
         this.Properties[InvocationContext] = invocationContext;
         hostBuilder.Properties[InvocationContext] = invocationContext;
         
         hostBuilder.ConfigureServices(services =>
         {
-            services.AddSingleton(parseResult);
+            services.AddSingleton(invocationContext.ParseResult);
             services.AddSingleton<IInvocationContext>(invocationContext);
             services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
             
@@ -256,12 +267,14 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
         var parseResult = parser.Parse(_args);
 
-        var internalHostBuilder = BuildInternalHostBuilder(parseResult);
+        var invocationContext = new InvocationContextHelper(parseResult);
+
+        var internalHostBuilder = BuildInternalHostBuilder(invocationContext);
         internalHostBuilder.ConfigureServices(services =>
         {
             services.AddSingleton(_ => parseResult);
             
-            services.AddSingleton<IInvocationContext, InvocationContextHelper>();
+            services.AddSingleton<IInvocationContext>(invocationContext);
             foreach (var item in _commands)
                 services.AddSingleton(item.commandType);
         });
