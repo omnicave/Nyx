@@ -108,6 +108,7 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
             {
                 [Constants.NatsHeaders.PayloadTypeHeader] = typeof(T).FullName,
                 [Constants.NatsHeaders.StreamIdHeader] = streamId.ToString(),
+                [Constants.NatsHeaders.StreamNamespaceHeader] = streamId.GetNamespace() ?? string.Empty
             };
 
             serializer.Serialize(jsonWriter, item);
