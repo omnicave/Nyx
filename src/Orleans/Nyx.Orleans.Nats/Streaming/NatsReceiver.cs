@@ -5,6 +5,7 @@ using NATS.Client.JetStream;
 using Newtonsoft.Json;
 using Nyx.Orleans.Serialization;
 using Orleans.Providers.Streams.Common;
+using Orleans.Runtime;
 using Orleans.Streams;
 
 namespace Nyx.Orleans.Nats.Streaming;
@@ -22,9 +23,6 @@ internal class NatsReceiver : IQueueAdapterReceiver
     private IJetStreamPullSubscription? _subscription;
     private readonly NatsStreamingOptions _options;
     private readonly ConcurrentDictionary<Guid, Msg> _natsMessageStore = new();
-
-
-    internal record NatsBatchContainerKey(Guid StreamId, string StreamNamespace);
 
     public NatsReceiver(
         string providerName,
@@ -66,7 +64,7 @@ internal class NatsReceiver : IQueueAdapterReceiver
 
     public Task<IList<IBatchContainer>> GetQueueMessagesAsync(int maxCount)
     {
-        var result = new Dictionary<NatsBatchContainerKey, NatsBatchContainer>();
+        var result = new Dictionary<StreamId, NatsBatchContainer>();
 
         var messages = _subscription?.Fetch(maxCount, 50);
         
@@ -78,49 +76,50 @@ internal class NatsReceiver : IQueueAdapterReceiver
                 result.Values.Cast<IBatchContainer>().ToList()
             );
         
-        foreach (var item in messages)
+        foreach (var natsMessageContainer in messages)
         {
-            item.InProgress();
+            natsMessageContainer.InProgress();
                 
-            var fullTypeNameRaw = item.Header[Constants.NatsHeaders.PayloadTypeHeader];
-            var streamGuidRaw = item.Header[Constants.NatsHeaders.StreamIdHeader];
-            var streamNsRaw = item.Header[Constants.NatsHeaders.StreamNamespaceHeader];
+            var fullTypeNameRaw = natsMessageContainer.Header[Constants.NatsHeaders.PayloadTypeHeader];
+            var streamKeyRaw = natsMessageContainer.Header[Constants.NatsHeaders.StreamKeyHeader];
+            var streamNsRaw = natsMessageContainer.Header[Constants.NatsHeaders.StreamNamespaceHeader];
 
-            if (fullTypeNameRaw == null || streamGuidRaw == null || streamNsRaw == null)
+            if (fullTypeNameRaw == null || streamNsRaw == null || streamKeyRaw == null)
             {
-                item.Term();
+                // inform NATS that we have stopped processing this message
+                natsMessageContainer.Term();
                 continue;
             }
-
-            if (!Guid.TryParse(streamGuidRaw, out var streamGuid))
-            {
-                item.Term();
-                continue;
-            }
-
-            var key = new NatsBatchContainerKey(streamGuid, streamNsRaw);
-            if (!result.TryGetValue(key, out var container))
+            
+            var streamId = StreamId.Create(streamNsRaw, streamKeyRaw);
+            
+            if (!result.TryGetValue(streamId, out var container))
             {
                 container = new NatsBatchContainer(
-                    streamGuid,
-                    streamNsRaw,
-                    new EventSequenceTokenV2((long)item.MetaData.StreamSequence));
+                    streamId,
+                    new EventSequenceTokenV2((long)natsMessageContainer.MetaData.StreamSequence));
 
-                result.Add(key, container);
+                result.Add(streamId, container);
             }
 
-            using var buffer = new MemoryStream(item.Data, false);
+            using var buffer = new MemoryStream(natsMessageContainer.Data, false);
             using var bufferReader = new StreamReader(buffer);
             using var jsonReader = new JsonTextReader(bufferReader);
 
             var e = serializer.Deserialize(jsonReader);
 
+            if (e == null)
+            {
+                natsMessageContainer.Term();
+                continue;
+            }
+
             var internalId = Guid.NewGuid();
             while (_natsMessageStore.ContainsKey(internalId))
                 internalId = Guid.NewGuid();
                 
-            container.AddEvent(internalId, e, (long)item.MetaData.ConsumerSequence);
-            _natsMessageStore.AddOrUpdate(internalId, _ => item, (_, _) => item);
+            container.AddEvent(internalId, e, (long)natsMessageContainer.MetaData.ConsumerSequence);
+            _natsMessageStore.AddOrUpdate(internalId, _ => natsMessageContainer, (_, _) => natsMessageContainer);
         }
 
         var batchContainers = result.Values.Cast<IBatchContainer>().ToList();

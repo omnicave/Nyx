@@ -7,7 +7,7 @@ using Orleans.Streams;
 
 namespace Nyx.Orleans.Nats.Streaming;
 
-public record NatsBatchContainerEntry(Guid InternalId, object Event, long sequence);
+public record NatsBatchContainerEntry(Guid InternalId, object Event, long Sequence);
 
 public class NatsBatchContainer : IBatchContainer
 {
@@ -16,19 +16,17 @@ public class NatsBatchContainer : IBatchContainer
     
     [JsonConstructor]
     public NatsBatchContainer(
-        Guid streamGuid, 
-        string streamNamespace, 
+        StreamId streamId,
         StreamSequenceToken sequenceToken)
     {
-        StreamGuid = streamGuid;
-        StreamNamespace = streamNamespace;
+        StreamId = streamId;
         SequenceToken = sequenceToken;
     }
 
     public IEnumerable<Tuple<T, StreamSequenceToken>> GetEvents<T>()
     {
         return Entries
-            .Select(x => Tuple.Create((T)x.Event, (StreamSequenceToken)new EventSequenceTokenV2(x.sequence)))
+            .Select(x => Tuple.Create((T)x.Event, (StreamSequenceToken)new EventSequenceTokenV2(x.Sequence)))
             .ToList();
     }
 
@@ -42,15 +40,7 @@ public class NatsBatchContainer : IBatchContainer
         return false;
     }
 
-    public StreamId StreamId => StreamId.Create(StreamNamespace, StreamGuid);
-
-    // public bool ShouldDeliver(IStreamIdentity stream, object filterData, StreamFilterPredicate shouldReceiveFunc)
-    // {
-    //     return Entries.Any(e => shouldReceiveFunc(stream, filterData, e.Event));
-    // }
-
-    public Guid StreamGuid { get; }
-    public string StreamNamespace { get; }
+    public StreamId StreamId { get; }
     
     public StreamSequenceToken SequenceToken { get; }
 }
