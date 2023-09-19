@@ -15,7 +15,7 @@ internal class NatsNamingConventions
         _clusterOptions = clusterOptions;
 
         Prefix = $"{clusterOptions.Value.ClusterId}-{clusterOptions.Value.ServiceId}";
-        SubjectPattern = $"{Prefix}-{providerName}.*";
+        SubjectPattern = $"{Prefix}-{providerName}.>";
         StreamName = $"orleans-streaming-{Prefix}-{providerName}";
         StreamConsumerName = $"orleans-streaming-{Prefix}-{providerName}";
     }
