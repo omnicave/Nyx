@@ -5,7 +5,7 @@ public record QueryParameters(
     List<QueryFilter> Filters,
     QueryResultOrder Order,
     string SearchString = "",
-    int PageSize = 0
+    int PageSize = 10
 )
 {
     public static readonly QueryParameters Default = new(new(), QueryResultOrder.Default);

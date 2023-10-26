@@ -16,17 +16,24 @@ public static class NewtonsoftJsonSerializerSettingsBuilder
         ConfigureJsonSerializerSettingsWithDefaults(jsonSerializerSettings);
         return jsonSerializerSettings;
     }
+    
+    public static JsonSerializerSettings GetDefaultsWithOrleansSupport()
+    {
+        var settings = GetDefaults();
+        settings.Converters.Add(new EventSequenceTokenConverter());
+
+        return settings;
+    }
 
     public static JsonSerializerSettings GetDefaultsWithOrleansSupport(
         TypeResolver typeResolver,
         GrainReferenceActivator grainReferenceActivator
         )
     {
-        var settings = GetDefaults();
+        var settings = GetDefaultsWithOrleansSupport();
         var serializationBinder = new OrleansJsonSerializationBinder(typeResolver);
         settings.SerializationBinder = serializationBinder;
         settings.Converters.Add(new GrainReferenceJsonConverter(grainReferenceActivator));
-        settings.Converters.Add(new EventSequenceTokenConverter());
 
         return settings;
     }
