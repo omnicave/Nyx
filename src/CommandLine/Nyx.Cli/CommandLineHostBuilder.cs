@@ -188,7 +188,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private ICommandLineHostBuilder RegisterCommandInternal<T>()
         where T : class
     {
-        _commands.Add(( typeof(T), rootCommand => new TypedChildCommandBuilder<T>(rootCommand) ) );
+        _commands.Add(( typeof(T), rootCommand => new TypedChildCommandBuilder<T>(rootCommand, HostBuilderFactory) ) );
         return this;
     }
 
@@ -196,14 +196,19 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     {
         Func<IInvocationContext, IHostBuilder>? resolvedHostBuilderFactory = null;
 
+        var isHelpRequested = invocationContext.ParseResult.CommandResult.Children.Any(x =>
+            x.Symbol.Name.Equals("help", StringComparison.OrdinalIgnoreCase));
+
+        if (isHelpRequested)
+        {
+            return DefaultHostBuilderFactory(invocationContext);
+        }
+
         if (invocationContext.ParseResult.CommandResult.Command is INyxSystemConsoleCommand c)
             resolvedHostBuilderFactory = c.HostBuilderFactory;
 
-        if (resolvedHostBuilderFactory == null && _hostBuilderFactory != null)
-            resolvedHostBuilderFactory = _hostBuilderFactory;
-
         if (resolvedHostBuilderFactory == null)
-            resolvedHostBuilderFactory = DefaultHostBuilderFactory;
+            resolvedHostBuilderFactory = (context => HostBuilderFactory.CreateHostBuilder(context));
         
         var hostBuilder = resolvedHostBuilderFactory(invocationContext);
 
