@@ -11,7 +11,6 @@ public abstract class BaseEntityRepositoryQueryGrain<TModel, TDao> : BaseQueryGr
 
     protected BaseEntityRepositoryQueryGrain()
     {
-        ;
         _dataOperationContextFactory = ServiceProvider.GetRequiredService<IDataOperationContextFactory>();
     }
     
