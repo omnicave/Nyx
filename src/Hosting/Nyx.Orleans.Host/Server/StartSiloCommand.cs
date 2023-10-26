@@ -4,11 +4,11 @@ using Nyx.Cli;
 namespace Nyx.Orleans.Host;
 
 [CliCommand("start-silo")]
-public class StartSiloComand
+public class StartSiloCommand
 {
     public async Task<int> Execute(
         IHost host,
-        [CliOption] int gatewayPort = 12000, 
+        [CliOption][Description("Port to use for the Silo gateway.")] int gatewayPort = 12000, 
         [CliOption] int siloPort = 13000, 
         [CliOption] int dashboardPort = 5002, 
         [CliOption] int apiPort = 5001, 
