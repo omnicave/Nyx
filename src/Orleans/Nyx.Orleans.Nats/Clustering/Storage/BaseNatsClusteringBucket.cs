@@ -6,6 +6,7 @@ using NATS.Client.Internals;
 using NATS.Client.JetStream;
 using NATS.Client.KeyValue;
 using Newtonsoft.Json;
+using Nyx.Orleans.Nats.Clustering.Storage.Models;
 using Orleans;
 using Orleans.Configuration;
 using Orleans.Runtime;
@@ -13,14 +14,12 @@ using Orleans.Serialization;
 
 namespace Nyx.Orleans.Nats.Clustering;
 
-public class BaseNatsClusteringBucket : IKeyValueWatcher, IDisposable
+public class BaseNatsClusteringBucket : IDisposable
 {
     protected readonly NatsClusteringOptions NatsClusteringOptions;
     protected readonly ClusterOptions OrleansClusterOptions;
     private readonly IConnection _connection;
-    private KeyValueWatchSubscription? _watcherHandle;
-
-    protected readonly ConcurrentDictionary<SiloAddress, (MembershipEntry entry, ulong revision)> MembershipEntryMap = new();
+    
     private readonly JsonSerializerSettings _jsonSerializerSettings;
 
     protected BaseNatsClusteringBucket(IOptions<NatsClusteringOptions> natsClusteringOptions, IOptions<ClusterOptions> clusterOptions)
@@ -53,38 +52,16 @@ public class BaseNatsClusteringBucket : IKeyValueWatcher, IDisposable
     private string GetBucketName() =>
         $"{NatsClusteringOptions.BucketName}-{OrleansClusterOptions.ClusterId}-{OrleansClusterOptions.ServiceId}";
 
-    //protected IConnection GetConnection() => _connection;
-
-    protected IKeyValue GetBucket() =>
-        _connection.CreateKeyValueContext(GetBucketName());
+    protected IKeyValue GetBucket() => _connection.CreateKeyValueContext(GetBucketName());
     
-    public void Watch(KeyValueEntry kve)
-    {
-        var siloAddress = ParseKey(kve.Key);
+    protected string GetKey(SiloAddress siloAddress) => siloAddress.ToParsableString()
+        .Replace(':', '-')
+        .Replace('@', '/');
 
-        if (kve.Operation.Equals(KeyValueOperation.Put))
-        {
-            var entry = (Deserialize<MembershipEntry>(kve.Value), kve.Revision);
-            MembershipEntryMap.AddOrUpdate(
-                siloAddress,
-                _ => entry,
-                (_, _) => entry);
-        }
-
-        if (kve.Operation.Equals(KeyValueOperation.Delete) || kve.Operation.Equals(KeyValueOperation.Purge))
-        {
-            MembershipEntryMap.Remove(siloAddress, out _);
-        }
-    }
-
-    public void EndOfData()
-    {
-        
-    }
-
-    protected string GetKey(SiloAddress siloAddress) => siloAddress.ToParsableString().Replace(':', '-').Replace('@', '/');
-
-    protected SiloAddress ParseKey(string key) => SiloAddress.FromParsableString(key.Replace('-', ':').Replace('/', '@'));
+    protected SiloAddress ParseKey(string key) => SiloAddress.FromParsableString(
+        key.Replace('-', ':')
+            .Replace('/', '@')
+    );
 
     protected byte[] Serialize<T>(T o)
     {
@@ -99,7 +76,6 @@ public class BaseNatsClusteringBucket : IKeyValueWatcher, IDisposable
     
     public virtual void Dispose()
     {
-        _watcherHandle?.Dispose();
         _connection.Dispose();
     }
     
@@ -116,24 +92,53 @@ public class BaseNatsClusteringBucket : IKeyValueWatcher, IDisposable
 
         var kvs = kvm.Create(kvc);
     }
-    
-    private (MembershipEntry entry, ulong revision) ReadMembershipEntry(IKeyValue kv, string key)
-    {
-        var kentry = kv.Get(key);
-        return (Deserialize<MembershipEntry>(kentry.Value), kentry.Revision);
-    }
-
     protected void Init()
     {
         EnsureBucketExists();
+    }
 
+    protected void RefreshTtlForSiloEntry(SiloAddress siloAddress)
+    {
         var kv = GetBucket();
-        foreach (var k in kv.Keys())
-        {
-            var pair = ReadMembershipEntry(kv, k);
-            MembershipEntryMap.TryAdd(pair.entry.SiloAddress, pair);
-        }
+
+        var key = GetKey(siloAddress);
+        var kve = kv.Get(key);
+        if (kve == null)
+            return;
         
-        _watcherHandle = kv.WatchAll(this);
+        kv.Put(key, kve.Value);
+    }
+    
+    protected void Upsert(MembershipEntry entry, TableVersion tableVersion, string? etag = null, ulong? natsRevision = null)
+    {
+        var kv = GetBucket();
+        var w = new ClusteringEntryStorage(entry, tableVersion);
+        kv.Put(GetKey(entry.SiloAddress), Serialize(w));
+    }
+
+    protected ClusteringEntry Get(SiloAddress siloAddress)
+    {
+        var kv = GetBucket();
+        var w = kv.Get(GetKey(siloAddress));
+        return DeserializeClusteringEntryStorage(w);
+    }
+
+    private ClusteringEntry DeserializeClusteringEntryStorage(KeyValueEntry kve)
+    {
+        var storedEntry = Deserialize<ClusteringEntryStorage>(kve.Value);
+        return new ClusteringEntry(storedEntry.Entry, storedEntry.TableVersion, kve.Revision);
+    }
+
+    protected IEnumerable<ClusteringEntry> GetAll()
+    {
+        var kv = GetBucket();
+        var result = kv.Keys().Select(ReadMembershipEntry).ToList().AsReadOnly();
+        return result;
+
+        ClusteringEntry ReadMembershipEntry(string key)
+        {
+            var kentry = kv.Get(key);
+            return DeserializeClusteringEntryStorage(kentry);
+        }
     }
 }
