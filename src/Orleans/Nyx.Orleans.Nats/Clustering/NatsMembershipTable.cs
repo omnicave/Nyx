@@ -39,14 +39,8 @@ public class NatsMembershipTable : BaseNatsClusteringBucket, IMembershipTable
                 while (true)
                 {
                     Thread.Sleep(TimeSpan.FromSeconds(15));
-                    var kv = GetBucket();
-                    MembershipEntryMap.AddOrUpdate(
-                        _localSiloDetails.SiloAddress,
-                        address => throw new InvalidOperationException(),
-                        (address, pair) => (pair.entry,
-                            kv.Update(GetKey(address), Serialize(pair.entry), pair.revision))
-                    );
-
+                    RefreshTtlForSiloEntry(_localSiloDetails.SiloAddress);
+                    
                     if (_cts.Token.IsCancellationRequested)
                         break;
                 }
@@ -56,15 +50,6 @@ public class NatsMembershipTable : BaseNatsClusteringBucket, IMembershipTable
             TaskScheduler.Current
         );
         return Task.CompletedTask;
-    }
-    
-    private void Upsert(IKeyValue kv, MembershipEntry entry, TableVersion tableVersion)
-    {
-        var revision = MembershipEntryMap.AddOrUpdate(
-            entry.SiloAddress,
-            address => (entry, kv.Put(GetKey(address), Serialize(entry))),
-            (address, pair) => (entry, kv.Update(GetKey(address), Serialize(entry), pair.revision))
-        );
     }
 
     public Task DeleteMembershipTableEntries(string clusterId)
@@ -83,42 +68,40 @@ public class NatsMembershipTable : BaseNatsClusteringBucket, IMembershipTable
 
     public Task<MembershipTableData> ReadRow(SiloAddress key)
     {
-        var p = MembershipEntryMap[key];
+        var w = Get(key);
         return Task.FromResult(
-            new MembershipTableData(Tuple.Create(p.entry, p.revision.ToString()), DefaultTableVersion)
+            new MembershipTableData(Tuple.Create(w.Entry, string.Empty), w.TableVersion)
         );
     }
 
     public Task<MembershipTableData> ReadAll()
     {
-        var result = MembershipEntryMap.Values
-            .Select(p => Tuple.Create(p.entry, p.revision.ToString()))
+        var w = GetAll().ToArray();
+        var result = w
+            .Select(p => Tuple.Create(p.Entry, string.Empty))
             .ToList();
 
-        return Task.FromResult(new MembershipTableData(result, DefaultTableVersion));
+        return Task.FromResult(new MembershipTableData(result, w.FirstOrDefault()?.TableVersion ?? DefaultTableVersion));
     }
 
     public Task<bool> InsertRow(MembershipEntry entry, TableVersion tableVersion)
     {
-        var kv = GetBucket();
-        Upsert(kv, entry, tableVersion);
+        Upsert(entry, tableVersion);
         return Task.FromResult(true);
     }
 
     public Task<bool> UpdateRow(MembershipEntry entry, string etag, TableVersion tableVersion)
     {
-        var kv = GetBucket();
-        Upsert(kv, entry, tableVersion);
+        Upsert(entry, tableVersion, etag);
         return Task.FromResult(true);
     }
 
     public Task UpdateIAmAlive(MembershipEntry entry)
     {
-        var currentEntry = MembershipEntryMap[entry.SiloAddress].entry;
+        var (currentEntry, tableVersion, natsRevision) = Get(entry.SiloAddress);
         currentEntry.IAmAliveTime = entry.IAmAliveTime;
-        
-        var kv = GetBucket();
-        Upsert(kv, currentEntry, DefaultTableVersion);
+        Upsert(currentEntry, tableVersion, 
+            natsRevision: natsRevision);
         
         return Task.CompletedTask;
     }
