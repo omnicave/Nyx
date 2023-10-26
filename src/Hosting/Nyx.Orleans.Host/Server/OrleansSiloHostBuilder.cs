@@ -6,6 +6,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using Nyx.Hosting;
 using Nyx.Orleans.Host.Db;
+using Nyx.Orleans.Host.Internal;
 using Orleans.Configuration;
 using Orleans.Serialization;
 using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
@@ -154,7 +155,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
 
         SetupOrleans(_webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
         SetupWebApi(_title, _webApplicationBuilder, apiPort, healthCheckPort);
-
+        
         ApplyHostBuilderOperations(_webApplicationBuilder.Host);
         
         var app = _webApplicationBuilder.Build();
@@ -188,9 +189,7 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
             
             PubStoreConfiguration(context, siloBuilder);
 
-            siloBuilder.Services.AddSerializer(
-                builder => builder.AddNewtonsoftJsonSerializer(type => type.FullName.StartsWith("Nyx"))
-            );
+            siloBuilder.Services.AddOrleansSerializationDefaults();
             
             siloBuilder
                 .Configure<EndpointOptions>(options =>
