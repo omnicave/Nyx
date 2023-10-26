@@ -23,6 +23,18 @@ public static partial class OrleansClientBuilderExtensions
     {
         return clientBuilder.UseStaticClustering(new[] { endpoint }, clusterId, serviceId);
     }
+    
+    public static IClientBuilder ConfigureForPostgresClustering(this IClientBuilder builder, 
+        string connectionString)
+    {
+        builder.UseAdoNetClustering(options =>
+        {
+            options.ConnectionString = connectionString;
+            options.Invariant = "Npgsql";
+        });
+        
+        return builder;
+    }
 }
 
 public static class OrleansClientHostBuilderExtensions
