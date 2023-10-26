@@ -2,9 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
-using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
-using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -14,10 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging.Console;
 using Nyx.Cli.CommandBuilders;
 using Nyx.Cli.Internal;
 using Nyx.Cli.Logging;
@@ -94,8 +88,8 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     
     private readonly List<(Type commandType, Func<Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
     private readonly List<Action<CommandLineBuilder>> _cliBuilderHandlers = new();
-        
-    private Func<IInvocationContext, IHostBuilder>? _hostBuilderFactory = null;
+
+    internal ICliHostBuilderFactory HostBuilderFactory = new DefaultCliHostBuilderFactory();
     private Func<IHost, CancellationToken, Task> _hostStartupProc =
         (host, cancellationToken) => host.StartAsync(cancellationToken);
     private Func<IHost, CancellationToken, Task> _hostShutdownProc =
@@ -142,7 +136,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
     public ICommandLineHostBuilder UseHostBuilderFactory(Func<IInvocationContext, IHostBuilder> hostBuilderFactory)
     {
-        _hostBuilderFactory = hostBuilderFactory;
+        HostBuilderFactory = new ActionBasedCliHostBuilderFactory(hostBuilderFactory);
         return this;
     }
 

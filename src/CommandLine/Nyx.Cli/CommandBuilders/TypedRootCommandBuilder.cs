@@ -16,7 +16,7 @@ internal class TypedRootCommandBuilder<T> : BaseCommandBuilder, IRootCommandBuil
     private readonly MethodInfo[] _methods;
     private readonly ICliHostBuilderFactory? _commandHostBuilderFactory;
 
-    public TypedRootCommandBuilder(string name)
+    public TypedRootCommandBuilder(string name, ICliHostBuilderFactory builderProvidedHostFactory)
     {
         _methods = typeof(T).GetTypeInfo().GetMethods();
         _name = name;
@@ -25,6 +25,7 @@ internal class TypedRootCommandBuilder<T> : BaseCommandBuilder, IRootCommandBuil
         var hostBuilderFactory = typeInfo.GetCustomAttribute<CliHostBuilderFactoryAttribute>();
         if (hostBuilderFactory != null)
             _commandHostBuilderFactory = hostBuilderFactory.Instance;
+        _commandHostBuilderFactory ??= builderProvidedHostFactory;
     }
     
     public Command Build()

@@ -23,10 +23,10 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
     private readonly string _description;
     private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description, CliHostBuilderFactoryAttribute? HostBuilderFactoryAttribute)> _subCommands;
     private readonly MethodInfo? _commandExecuteMethodInfo;
-    private readonly ICliHostBuilderFactory? _commandHostBuilderFactory = null;
+    private readonly ICliHostBuilderFactory? _commandHostBuilderFactory;
     private bool SingleCommandMode => !_subCommands.Any() && _commandExecuteMethodInfo != null;
         
-    public TypedChildCommandBuilder(Command rootCommand)
+    public TypedChildCommandBuilder(Command rootCommand, ICliHostBuilderFactory builderProvidedHostFactory)
     {
         _rootCommand = rootCommand;
         var typeInfo = typeof(TCliCommand).GetTypeInfo();
@@ -35,8 +35,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         var descriptionAttribute = typeInfo.GetCustomAttribute<DescriptionAttribute>();
 
         var hostBuilderFactory = typeInfo.GetCustomAttribute<CliHostBuilderFactoryAttribute>();
-        if (hostBuilderFactory != null)
-            _commandHostBuilderFactory = hostBuilderFactory.Instance;
+        _commandHostBuilderFactory = hostBuilderFactory?.Instance ?? builderProvidedHostFactory;
 
         if (cliCommandAttribute == null)
         {
@@ -76,7 +75,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
             _commandExecuteMethodInfo = executeMethod;
 
         if (executeMethod == null && _subCommands.Count == 0) 
-            throw new InvalidOperationException("Command doesn't have any subcommands or an Execute method");
+            throw new InvalidOperationException($"Command '{typeof(TCliCommand).Name}' doesn't have any subcommands or an Execute method");
         
         
     }

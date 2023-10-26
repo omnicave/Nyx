@@ -20,7 +20,10 @@ public static partial class CommandLineHostBuilderExtensions
     public static ICommandLineHostBuilder WithRootCommandHandler<T>(this ICommandLineHostBuilder builder) where T : class
     {
         builder.ConfigureServices((context, collection) => collection.AddScoped<T>());
-        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
+        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name => new TypedRootCommandBuilder<T>(
+            name,
+            ((CommandLineHostBuilder)builder).HostBuilderFactory
+        );
         return builder;
     }
 
@@ -31,14 +34,20 @@ public static partial class CommandLineHostBuilderExtensions
             return WithRootCommandHandler(builder, (Delegate)factory);
         }
         builder.ConfigureServices((context, collection) => collection.AddScoped<T>(provider => factory()));
-        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
+        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name => new TypedRootCommandBuilder<T>(
+            name,
+            ((CommandLineHostBuilder)builder).HostBuilderFactory
+        );
         return builder;
     }
     
     public static ICommandLineHostBuilder WithRootCommandHandler<T>(this ICommandLineHostBuilder builder, Func<IServiceProvider, T> factory) where T : class
     {
         builder.ConfigureServices((context, collection) => collection.AddScoped<T>(factory));
-        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name =>  new TypedRootCommandBuilder<T>(name);
+        ((CommandLineHostBuilder)builder).RootCommandBuilderFactory = name => new TypedRootCommandBuilder<T>(
+            name,
+            ((CommandLineHostBuilder)builder).HostBuilderFactory
+        );
         return builder;
     }
 
