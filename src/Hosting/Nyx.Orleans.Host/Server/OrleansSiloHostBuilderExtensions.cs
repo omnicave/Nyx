@@ -13,7 +13,7 @@ public static class OrleansSiloHostBuilderExtensions
 {
     public static OrleansSiloHostBuilder ConfigureForDevelopment(this OrleansSiloHostBuilder builder)
     {
-        builder.ConfigureClustering((_, siloBuilder) => 
+        builder.ConfigureClustering((_, siloBuilder) =>
             siloBuilder.UseDevelopmentClustering(primarySiloEndpoint: null)
         );
         builder.UseInMemoryPubStore();
@@ -22,104 +22,67 @@ public static class OrleansSiloHostBuilderExtensions
     }
 
 
-    public static OrleansSiloHostBuilder ConfigureClustering(this OrleansSiloHostBuilder builder, Action<HostBuilderContext, ISiloBuilder> configurator)
+    public static OrleansSiloHostBuilder ConfigureClustering(this OrleansSiloHostBuilder builder,
+        Action<HostBuilderContext, ISiloBuilder> configurator)
     {
         builder.ClusteringConfiguration = configurator;
         return builder;
     }
-    
-    public static OrleansSiloHostBuilder ConfigureClustering(this OrleansSiloHostBuilder builder, Action<ISiloBuilder> configurator)
+
+    public static OrleansSiloHostBuilder ConfigureClustering(this OrleansSiloHostBuilder builder,
+        Action<ISiloBuilder> configurator)
     {
         return ConfigureClustering(builder, (_, sb) => configurator(sb));
     }
-    
 
-    public static OrleansSiloHostBuilder ConfigureForPostgresClustering(this OrleansSiloHostBuilder builder, string connectionString)
+    public static OrleansSiloHostBuilder ConfigureForPostgresClustering(this OrleansSiloHostBuilder builder,
+        Func<HostBuilderContext, string> connectionStringProc)
     {
-        ConfigureClustering(builder, siloBuilder =>
-        {
-            siloBuilder.UseAdoNetClustering(options =>
+        ConfigureClustering(builder,
+            (context, siloBuilder) =>
             {
-                options.ConnectionString = connectionString;
-                options.Invariant = "Npgsql";
-            });
-        });
-        
-        builder.ConfigureServices((context, collection) =>
-            collection.AddSingleton(new OrleansPostgresConnection(connectionString))
+                siloBuilder.UseAdoNetClustering(options =>
+                {
+                    options.ConnectionString = connectionStringProc(context);
+                    options.Invariant = "Npgsql";
+                });
+            }
         );
-        
+
+        builder.ConfigureServices((context, collection) =>
+            collection.AddSingleton(new OrleansPostgresConnection(connectionStringProc(context)))
+        );
+
         return builder;
     }
-    
+
+    public static OrleansSiloHostBuilder ConfigureForPostgresClustering(this OrleansSiloHostBuilder builder,
+        string connectionString)
+    {
+        return ConfigureForPostgresClustering(builder, _ => connectionString);
+    }
+
     public static OrleansSiloHostBuilder UseInMemoryPubStore(this OrleansSiloHostBuilder builder)
     {
         builder.PubStoreConfiguration = (context, siloBuilder) => siloBuilder.AddMemoryGrainStorage("PubSubStore");
         return builder;
-    }    
-    
-    public static OrleansSiloHostBuilder UsePostgresPubSubStore(this OrleansSiloHostBuilder builder, string connectionString)
-    {
-        builder.PubStoreConfiguration = (context, siloBuilder) => siloBuilder.AddAdoNetGrainStorage(
-            "PubSubStore",
-            optionsBuilder => optionsBuilder.Configure(options =>
-                {
-                    options.ConnectionString = connectionString;
-                    options.Invariant = "Npgsql";
-                    options.GrainStorageSerializer = new JsonGrainStorageSerializer(
-                        new OrleansJsonSerializer(
-                            new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
-                            {
-                                JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
-                            })
-                        )
-                    );
-                }
-            )
-        );
-
-        builder.ConfigureServices((context, collection) =>
-            collection.AddSingleton(new OrleansPostgresConnection(connectionString))
-        );
-        
-        return builder;
     }
-    
-    public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name, Func<IConfiguration, string> connectionStringProc)
+
+    public static OrleansSiloHostBuilder UsePostgresPubSubStore(this OrleansSiloHostBuilder builder,
+        string connectionString)
     {
-        builder.SiloBuilderExtraConfiguration.Add(
-            (context, siloBuilder) => siloBuilder.AddAdoNetGrainStorage(
-                name,
-                optionsBuilder => optionsBuilder.Configure(options =>
-                    {
-                        options.ConnectionString = connectionStringProc(context.Configuration);
-                        options.Invariant = "Npgsql";
-                        options.GrainStorageSerializer = new JsonGrainStorageSerializer(
-                            new OrleansJsonSerializer(
-                                new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
-                                {
-                                    JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
-                                })
-                            )
-                        );
-
-                    }
-                )
-            )
-        );
-
-        builder.ConfigureServices((context, collection) =>
-            collection.AddSingleton(new OrleansPostgresConnection(connectionStringProc(context.Configuration)))
-        );
-        
-        return builder;
+        return UsePostgresPubSubStore(builder, (_) => connectionString);
     }
-    
-    public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name, string connectionString)
+
+    public static OrleansSiloHostBuilder UsePostgresPubSubStore(this OrleansSiloHostBuilder builder,
+        Func<HostBuilderContext, string> connectionStringProc)
     {
-        builder.SiloBuilderExtraConfiguration.Add(
-            (context, siloBuilder) => siloBuilder.AddAdoNetGrainStorage(
-                name,
+        builder.PubStoreConfiguration = (context, siloBuilder) =>
+        {
+            var connectionString = connectionStringProc(context);
+
+            siloBuilder.AddAdoNetGrainStorage(
+                "PubSubStore",
                 optionsBuilder => optionsBuilder.Configure(options =>
                     {
                         options.ConnectionString = connectionString;
@@ -132,18 +95,58 @@ public static class OrleansSiloHostBuilderExtensions
                                 })
                             )
                         );
+                    }
+                )
+            );
+        };
 
+        builder.ConfigureServices(
+            (context, collection) =>
+            {
+                var connectionString = connectionStringProc(context);
+                collection.AddSingleton(new OrleansPostgresConnection(connectionString));
+            }
+        );
+
+        return builder;
+    }
+
+    public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name,
+        Func<HostBuilderContext, string> connectionStringProc)
+    {
+        builder.SiloBuilderExtraConfiguration.Add(
+            (context, siloBuilder) => siloBuilder.AddAdoNetGrainStorage(
+                name,
+                optionsBuilder => optionsBuilder.Configure(options =>
+                    {
+                        options.ConnectionString = connectionStringProc(context);
+                        options.Invariant = "Npgsql";
+                        options.GrainStorageSerializer = new JsonGrainStorageSerializer(
+                            new OrleansJsonSerializer(
+                                new OptionsWrapper<OrleansJsonSerializerOptions>(new OrleansJsonSerializerOptions()
+                                {
+                                    JsonSerializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults()
+                                })
+                            )
+                        );
                     }
                 )
             )
         );
 
         builder.ConfigureServices((context, collection) =>
-            collection.AddSingleton(new OrleansPostgresConnection(connectionString))
+            collection.AddSingleton(new OrleansPostgresConnection(connectionStringProc(context)))
         );
-        
+
         return builder;
     }
+
+    public static OrleansSiloHostBuilder UsePostgresGrainStorage(this OrleansSiloHostBuilder builder, string name,
+        string connectionString)
+    {
+        return UsePostgresGrainStorage(builder, name, _ => connectionString);
+    }
+
     public static OrleansSiloHostBuilder UseInMemoryGrainStorage(this OrleansSiloHostBuilder builder, string name)
     {
         builder.SiloBuilderExtraConfiguration.Add(
@@ -153,15 +156,17 @@ public static class OrleansSiloHostBuilderExtensions
         );
         return builder;
     }
-    
-    public static OrleansSiloHostBuilder UsePostgresInternalGrainStorage(this OrleansSiloHostBuilder builder, string connectionString) 
-        => builder.UsePostgresGrainStorage(Constants.NyxInternalStorageName, connectionString);
-    
-    public static OrleansSiloHostBuilder UseInMemoryInternalGrainStorage(this OrleansSiloHostBuilder builder) 
-        => builder.UseInMemoryGrainStorage(Constants.NyxInternalStorageName);
-    
 
-    public static OrleansSiloHostBuilder ConfigureOrleansSilo(this OrleansSiloHostBuilder builder, Action<HostBuilderContext, ISiloBuilder> d)
+    public static OrleansSiloHostBuilder UsePostgresInternalGrainStorage(this OrleansSiloHostBuilder builder,
+        string connectionString)
+        => builder.UsePostgresGrainStorage(Constants.NyxInternalStorageName, connectionString);
+
+    public static OrleansSiloHostBuilder UseInMemoryInternalGrainStorage(this OrleansSiloHostBuilder builder)
+        => builder.UseInMemoryGrainStorage(Constants.NyxInternalStorageName);
+
+
+    public static OrleansSiloHostBuilder ConfigureOrleansSilo(this OrleansSiloHostBuilder builder,
+        Action<HostBuilderContext, ISiloBuilder> d)
     {
         builder.SiloBuilderExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
         return builder;
