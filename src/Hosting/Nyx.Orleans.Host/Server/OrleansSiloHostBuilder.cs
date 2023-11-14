@@ -152,11 +152,13 @@ public class OrleansSiloHostBuilder : BaseHostBuilder
     protected IHost BuildActualHost(int gatewayPort = 12000, int siloPort = 13000, int dashboardPort = 5002, int apiPort = 5001, int healthCheckPort = 5081)
     {
         _webApplicationBuilder.Services.AddHostedService<EnsureOrleansSchemaInPgsql>();
+        
+        ApplyHostBuilderOperations(_webApplicationBuilder.Host);
 
         SetupOrleans(_webApplicationBuilder.Host, gatewayPort, siloPort, dashboardPort);
         SetupWebApi(_title, _webApplicationBuilder, apiPort, healthCheckPort);
         
-        ApplyHostBuilderOperations(_webApplicationBuilder.Host);
+        ApplyHostBuilderAppOperations(_webApplicationBuilder.Host);
         
         var app = _webApplicationBuilder.Build();
         SetupAppBuilder(app.Environment, app, healthCheckPort);
