@@ -41,7 +41,7 @@ public class OrleansClientHostBuilder : BaseHostBuilder
         var hostBuilder = new HostBuilder()
             .AddOrleansClusterClient(x);
         
-        ApplyHostBuilderOperations(hostBuilder);
+        ApplyHostBuilderAppOperations(hostBuilder);
         return hostBuilder.Build();
 
         // var cli = CommandLineHostBuilder.Create(_clientName, _args ?? Array.Empty<string>());

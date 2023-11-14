@@ -214,6 +214,9 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
         this.Properties[InvocationContext] = invocationContext;
         hostBuilder.Properties[InvocationContext] = invocationContext;
+        hostBuilder.Properties["CliHostBuilder"] = true;
+        
+        ApplyHostBuilderOperations(hostBuilder);
         
         hostBuilder.ConfigureServices(services =>
         {
@@ -254,7 +257,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             services.AddOptions();
         });
         
-        ApplyHostBuilderOperations(hostBuilder);
+        ApplyHostBuilderAppOperations(hostBuilder);
 
         return hostBuilder;
     }
@@ -343,27 +346,6 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         );
         return cliBuilder;
     }
-
-    // [Obsolete]
-    // public async Task<int> RunAsync()
-    // {
-    //     var host = Build();
-    //     try
-    //     {
-    //         await host.StartAsync();
-    //
-    //         await host.StopAsync();
-    //
-    //         if (host is CommandLineHost cliHost)
-    //             return cliHost.ExitCode;
-    //
-    //         return 0;
-    //     }
-    //     catch
-    //     {
-    //         return -1;
-    //     }
-    // }
 
     public ICommandLineHostBuilder AddYamlConfigurationFile(string path)
     {

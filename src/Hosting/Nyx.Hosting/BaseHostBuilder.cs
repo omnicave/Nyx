@@ -6,7 +6,8 @@ namespace Nyx.Hosting;
 
 public abstract class BaseHostBuilder : IHostBuilder
 {
-    private readonly List<Action<IHostBuilder>> _operations = new();
+    private readonly List<Action<IHostBuilder>> _hostOperations = new();
+    private readonly List<Action<IHostBuilder>> _appOperations = new();
 
     public abstract IHost Build();
 
@@ -17,14 +18,14 @@ public abstract class BaseHostBuilder : IHostBuilder
     public IHostBuilder ConfigureAppConfiguration(
         Action<HostBuilderContext, IConfigurationBuilder> configureDelegate)
     {
-        _operations.Add( b => b.ConfigureAppConfiguration(configureDelegate));
+        _appOperations.Add( b => b.ConfigureAppConfiguration(configureDelegate));
         return this;
     }
 
     /// <inheritdoc />
     public IHostBuilder ConfigureContainer<TContainerBuilder>(Action<HostBuilderContext, TContainerBuilder> configureDelegate)
     {
-        _operations.Add(b => b.ConfigureContainer(configureDelegate));
+        _appOperations.Add(b => b.ConfigureContainer(configureDelegate));
         return this;
     }
 
@@ -32,14 +33,14 @@ public abstract class BaseHostBuilder : IHostBuilder
     public IHostBuilder ConfigureHostConfiguration(
         Action<IConfigurationBuilder> configureDelegate)
     {
-        _operations.Add(b => b.ConfigureHostConfiguration(configureDelegate));
+        _hostOperations.Add(b => b.ConfigureHostConfiguration(configureDelegate));
         return this;
     }
 
     /// <inheritdoc />
     public IHostBuilder ConfigureServices(Action<HostBuilderContext, IServiceCollection> configureDelegate)
     {
-        _operations.Add( b => b.ConfigureServices(configureDelegate));
+        _appOperations.Add( b => b.ConfigureServices(configureDelegate));
         return this;
     }
 
@@ -50,7 +51,7 @@ public abstract class BaseHostBuilder : IHostBuilder
     {
         if (factory == null)
             throw new ArgumentNullException(nameof (factory));
-        _operations.Add(b => b.UseServiceProviderFactory(factory));
+        _appOperations.Add(b => b.UseServiceProviderFactory(factory));
         return this;
     }
 
@@ -61,13 +62,22 @@ public abstract class BaseHostBuilder : IHostBuilder
     {
         if (factory == null)
             throw new ArgumentNullException(nameof (factory));
-        _operations.Add(b => b.UseServiceProviderFactory(factory));
+        _appOperations.Add(b => b.UseServiceProviderFactory(factory));
         return this;
     }
 
     protected internal void ApplyHostBuilderOperations(IHostBuilder hostBuilder)
     {
-        foreach (var operation in _operations)
+        foreach (var operation in _hostOperations)
+        {
             operation(hostBuilder);
+        }
+    }
+    protected internal void ApplyHostBuilderAppOperations(IHostBuilder hostBuilder)
+    {
+        foreach (var operation in _appOperations)
+        {
+            operation(hostBuilder);
+        }
     }
 }
