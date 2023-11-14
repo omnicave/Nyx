@@ -11,9 +11,6 @@ public class NatsSiloPersistentStreamConfigurator : SiloPersistentStreamConfigur
     {
         ConfigureDelegate(services =>
         {
-            // services.AddOptions<NatsStreamingOptions>(name);
-            // //services.AddOptions<HashRingStreamQueueMapperOptions>(name);
-            
             services
                 .ConfigureNamedOptionForLogging<NatsStreamingOptions>(name)
                 .ConfigureNamedOptionForLogging<SimpleQueueCacheOptions>(name)
