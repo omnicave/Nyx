@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -31,7 +32,7 @@ namespace Nyx.Data.Internal
             var dbContext = scope.ServiceProvider.GetRequiredService<RootDbContext>();
 
             _log.LogInformation("Checking database ...");
-            var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync(cancellationToken: cancellationToken);
+            var pendingMigrations = (await dbContext.Database.GetPendingMigrationsAsync(cancellationToken: cancellationToken)).ToList();
             _log.LogInformation("Checking database ... done");
 
             if (pendingMigrations?.Any() ?? false)

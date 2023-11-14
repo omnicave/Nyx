@@ -82,10 +82,10 @@ public static class ServiceCollectionExtensions
         Action<NpgsqlDbContextOptionsBuilder> act = builderAction != null
             ? builder => builderAction(CommonOptionsBuilderConfiguration(builder))
             : builder => CommonOptionsBuilderConfiguration(builder);
-            
-        Action<DbContextOptionsBuilder> a = builder => Defaults(builder).UseNpgsql(connectionString, act);
 
-        return serviceCollection.AddDbContext<RootDbContext>(a);
+        return serviceCollection.AddDbContext<RootDbContext>(
+            builder => Defaults(builder).UseNpgsql(connectionString, act)
+            );
     }
 
     public static IServiceCollection RegisterDataMigrationStartupService(this IServiceCollection serviceCollection)
