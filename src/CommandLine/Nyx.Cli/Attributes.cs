@@ -58,36 +58,20 @@ public class CliArgumentAttribute : Attribute
 /// <summary>
 ///     Marks the parameter of a method as an optional argument for the subcommand / command invoked via CLI. 
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.Class)]
 public class CliOptionAttribute : Attribute
 {
-    // public string Name { get; }
+    public string Name { get; set; } = string.Empty;
 
+    public Type? Type { get; set; } = null;
+
+    public string Description { get; set; } = string.Empty;
     public string Alias { get; set; } = string.Empty;
         
     public bool HasAlias => !(ReferenceEquals(Alias, string.Empty) || string.IsNullOrWhiteSpace(Alias));
 
     public CliOptionAttribute()
     {
-    }
-}
-
-[AttributeUsage(AttributeTargets.Class)]
-public class CliGlobalOptionAttribute : Attribute
-{
-    public string Name { get; set; }
-    public TypeInfo Type { get; set; }
-    
-    public string? Description { get; set; }
-
-    public string Alias { get; set; } = string.Empty;
-        
-    public bool HasAlias => !(ReferenceEquals(Alias, string.Empty) || string.IsNullOrWhiteSpace(Alias));
-
-    public CliGlobalOptionAttribute(string name, TypeInfo type)
-    {
-        Name = name;
-        Type = type;
     }
 }
 
