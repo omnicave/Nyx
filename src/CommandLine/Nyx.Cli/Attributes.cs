@@ -58,7 +58,7 @@ public class CliArgumentAttribute : Attribute
 /// <summary>
 ///     Marks the parameter of a method as an optional argument for the subcommand / command invoked via CLI. 
 /// </summary>
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.Class)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Parameter | AttributeTargets.Class, AllowMultiple = true)]
 public class CliOptionAttribute : Attribute
 {
     public string Name { get; set; } = string.Empty;
