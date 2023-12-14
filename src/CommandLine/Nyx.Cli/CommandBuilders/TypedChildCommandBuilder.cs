@@ -24,7 +24,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
     private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description, CliHostBuilderFactoryAttribute? HostBuilderFactoryAttribute)> _subCommands;
     private readonly MethodInfo? _commandExecuteMethodInfo;
     private readonly ICliHostBuilderFactory? _commandHostBuilderFactory;
-    private readonly List<CliGlobalOptionAttribute> _commandGlobalOptionAttributes = new ();
+    private readonly List<CliOptionAttribute> _commandGlobalOptionAttributes = new ();
     private bool SingleCommandMode => !_subCommands.Any() && _commandExecuteMethodInfo != null;
         
     public TypedChildCommandBuilder(Command rootCommand, ICliHostBuilderFactory builderProvidedHostFactory)
@@ -55,7 +55,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         }
 
         _commandGlobalOptionAttributes.AddRange(
-            typeInfo.GetCustomAttributes<CliGlobalOptionAttribute>()
+            typeInfo.GetCustomAttributes<CliOptionAttribute>(true)
         );
         
             
@@ -118,9 +118,14 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
 
         foreach (var item in _commandGlobalOptionAttributes)
         {
-            var o =
-                new CliParameterBuilder().BuildCommandLineOption(item.Name, item.Type,
-                    item.Description ?? string.Empty);
+            if (string.IsNullOrWhiteSpace(item.Name))
+                throw new InvalidOperationException($"Option name on command {typeof(TCliCommand).Name} cannot be null or empty.");
+            
+            if (item.Type == null)
+                throw new InvalidOperationException($"Type for option '{item.Name}' on command {typeof(TCliCommand).Name} is unset.");
+            
+            var o = new CliParameterBuilder()
+                .BuildCommandLineOption(item.Name, item.Type.GetTypeInfo(), item.Description ?? string.Empty);
             parentCommandGlobalOptions.Add(o);
             parentCommand.AddGlobalOption(o);
         }
