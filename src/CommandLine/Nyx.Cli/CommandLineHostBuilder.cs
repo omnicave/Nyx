@@ -34,6 +34,7 @@ public interface ICommandLineHostBuilder : IHostBuilder
     
     ICommandLineHostBuilder AddYamlConfigurationFile(string path);
 
+    [Obsolete("Depends on underlying framework.")]
     ICommandLineHostBuilder AddGlobalOption<TOption>()
         where TOption : Option, new();
 
@@ -77,6 +78,11 @@ public interface ICommandLineHostBuilder : IHostBuilder
     ICommandLineHostBuilder UseHostBuilderFactory(Func<IInvocationContext, IHostBuilder> hostBuilderFactory);
 }
 
+internal class CliHostBuilderContext
+{
+    public List<Option> GlobalOptions { get; } = new ();
+}
+
 public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 {
     internal const string InvocationContext = "InvocationContext";
@@ -87,8 +93,8 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private readonly string _name;
     private readonly string[] _args;
     
-    private readonly List<(Type commandType, Func<Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
-    private readonly List<Action<CommandLineBuilder>> _cliBuilderHandlers = new();
+    private readonly List<(Type commandType, Func<CliHostBuilderContext, Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
+    private readonly List<Action<CliHostBuilderContext, CommandLineBuilder>> _cliBuilderHandlers = new();
 
     internal ICliHostBuilderFactory HostBuilderFactory = new DefaultCliHostBuilderFactory();
     private Func<IHost, CancellationToken, Task> _hostStartupProc =
@@ -112,11 +118,11 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                 )
         );
 
-    protected CommandLineHostBuilder(string name, string[] args)
+    private CommandLineHostBuilder(string name, string[] args)
     {
         _name = name;
         _args = args;
-        _cliBuilderHandlers.Add(builder =>
+        _cliBuilderHandlers.Add( (_, builder) =>
         {
             builder
                 .UseVersionOption()
@@ -172,7 +178,10 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     public ICommandLineHostBuilder RegisterCommand(Type t)
     {
         var mi = GetType()
-            .GetMethod(nameof(RegisterCommandInternal), BindingFlags.Default | BindingFlags.NonPublic | BindingFlags.Instance)?
+            .GetMethod(
+                nameof(RegisterCommandInternal), 
+                BindingFlags.Default | BindingFlags.NonPublic | BindingFlags.Instance
+                )?
             .MakeGenericMethod(t);
 
         if (mi == null)
@@ -189,7 +198,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private ICommandLineHostBuilder RegisterCommandInternal<T>()
         where T : class
     {
-        _commands.Add(( typeof(T), rootCommand => new TypedChildCommandBuilder<T>(rootCommand, HostBuilderFactory) ) );
+        _commands.Add(( typeof(T), (ctx, rootCommand) => new TypedChildCommandBuilder<T>(rootCommand, HostBuilderFactory) ) );
         return this;
     }
 
@@ -306,15 +315,17 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             : new Command(_name);
 
         var cliBuilder = new CommandLineBuilder(rootCommand);
+        var cliHostBuilderContext = new CliHostBuilderContext();
 
-        _cliBuilderHandlers.ForEach(x => x(cliBuilder));
+        // apply all operations on CommandLineBuilder
+        _cliBuilderHandlers.ForEach(x => x(cliHostBuilderContext, cliBuilder));
 
         // sub commands are added after the CommandLineBuilder actions are executed.  We config the global options in
         // the handlers, and they need to be available to the CommandBuilders
         foreach (var pair in _commands)
         {
-            var commandBuilder = pair.commandBuilderHandler(rootCommand);
-            rootCommand.AddCommand(commandBuilder.Build());
+            var commandBuilder = pair.commandBuilderHandler(cliHostBuilderContext, rootCommand);
+            rootCommand.AddCommand(commandBuilder.Build(cliHostBuilderContext));
         }
 
         cliBuilder.AddMiddleware(
@@ -366,9 +377,10 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         return this;
     }
 
+    [Obsolete("Depends on underlying framework.")]
     public ICommandLineHostBuilder AddGlobalOption<TOption>() where TOption : Option, new()
     {
-        _cliBuilderHandlers.Add(builder => builder.Command.AddGlobalOption(new TOption()));
+        _cliBuilderHandlers.Add((_, builder) => builder.Command.AddGlobalOption(new TOption()));
         return this;
     }
 
@@ -417,12 +429,16 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             : new[] { $"--{name}", $"-{alias}" };
             
         _cliBuilderHandlers.Add(
-            builder => builder.Command.AddGlobalOption(
-                defaultValueProc == null
+            (ctx, builder) =>
+            {
+                var opt = defaultValueProc == null
                     ? new Option<TValue>(aliases, description ?? string.Empty)
-                    : new Option<TValue>(aliases, defaultValueProc, description ?? string.Empty)
-            )
-        );
+                    : new Option<TValue>(aliases, defaultValueProc, description ?? string.Empty);
+
+                // register the global option into the context
+                ctx.GlobalOptions.Add(opt);
+                builder.Command.AddGlobalOption(opt);
+            });
         return this;
     }
 

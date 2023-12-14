@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nyx.Cli.CommandBuilders;
+using Nyx.Cli.Internal;
 
 namespace Nyx.Cli.CommandHandlers;
 

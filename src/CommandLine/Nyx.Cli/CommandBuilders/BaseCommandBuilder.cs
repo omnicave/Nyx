@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 using System.Linq;
 using System.Reflection;
+using Nyx.Cli.Internal;
 
 namespace Nyx.Cli.CommandBuilders;
 
@@ -15,7 +17,7 @@ internal abstract class BaseCommandBuilder
         }
     }
     
-    protected void PopulateCommandArgumentsAndOptions(Command command, Command? rootCommand, ParameterInfo[] parameters, HandlerDescriptor descriptor)
+    protected void PopulateCommandArgumentsAndOptions(Command command, IEnumerable<Option> globalOptions, ParameterInfo[] parameters, HandlerDescriptor descriptor)
     {
         var cliParameterBuilder = new CliParameterBuilder();
         
@@ -27,7 +29,7 @@ internal abstract class BaseCommandBuilder
                 parameterDescriptor.ValueName, 
                 parameterDescriptor.ValueType.GetTypeInfo(), 
                 parameterInfoLookup[parameterDescriptor.ValueName], 
-                rootCommand?.Options ?? Enumerable.Empty<Option>()
+                globalOptions
                 )
             )
             .ToList()

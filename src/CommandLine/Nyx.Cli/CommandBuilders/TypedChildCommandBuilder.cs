@@ -24,6 +24,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
     private readonly List<(MethodInfo Info, CliSubCommandAttribute SubCommandAttribute, DescriptionAttribute Description, CliHostBuilderFactoryAttribute? HostBuilderFactoryAttribute)> _subCommands;
     private readonly MethodInfo? _commandExecuteMethodInfo;
     private readonly ICliHostBuilderFactory? _commandHostBuilderFactory;
+    private readonly List<CliGlobalOptionAttribute> _commandGlobalOptionAttributes = new ();
     private bool SingleCommandMode => !_subCommands.Any() && _commandExecuteMethodInfo != null;
         
     public TypedChildCommandBuilder(Command rootCommand, ICliHostBuilderFactory builderProvidedHostFactory)
@@ -34,6 +35,8 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         var cliCommandAttribute = typeInfo.GetCustomAttribute<CliCommandAttribute>();
         var descriptionAttribute = typeInfo.GetCustomAttribute<DescriptionAttribute>();
 
+        // check if command declares a host builder factory via attributes.  If NOT we use the one provided
+        // by the builder via arguments to constructor
         var hostBuilderFactory = typeInfo.GetCustomAttribute<CliHostBuilderFactoryAttribute>();
         _commandHostBuilderFactory = hostBuilderFactory?.Instance ?? builderProvidedHostFactory;
 
@@ -50,6 +53,11 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
                 _commandAlias = cliCommandAttribute.Alias;
             _commandName = cliCommandAttribute.Name;
         }
+
+        _commandGlobalOptionAttributes.AddRange(
+            typeInfo.GetCustomAttributes<CliGlobalOptionAttribute>()
+        );
+        
             
         _description = descriptionAttribute != null ? descriptionAttribute.Description : string.Empty;
 
@@ -76,11 +84,9 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
 
         if (executeMethod == null && _subCommands.Count == 0) 
             throw new InvalidOperationException($"Command '{typeof(TCliCommand).Name}' doesn't have any subcommands or an Execute method");
-        
-        
     }
 
-    private void PopulateCommandFromMethodInfo(MethodInfo mi, Command command)
+    private void PopulateCommandFromMethodInfo(MethodInfo mi, Command command, IEnumerable<Option> globalOptions)
     {
         command.Handler = SetupCommandHandlerFromMethodInfo(mi);
 
@@ -88,7 +94,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         var descriptor = HandlerDescriptor.FromMethodInfo(mi);
         var parameters = mi.GetParameters();
 
-        PopulateCommandArgumentsAndOptions(command, _rootCommand, parameters, descriptor);
+        PopulateCommandArgumentsAndOptions(command, globalOptions, parameters, descriptor);
     }
 
     private ICommandHandler SetupCommandHandlerFromMethodInfo(MethodInfo mi)
@@ -96,8 +102,10 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         return new HostResolvedMethodInfoCommandHandler<TCliCommand>(mi);
     }
 
-    public Command Build()
+    public Command Build(CliHostBuilderContext cliHostBuilderContext)
     {
+        var parentCommandGlobalOptions = new List<Option>();
+        
         Func<IInvocationContext,IHostBuilder>? act = _commandHostBuilderFactory != null ? (ctx => _commandHostBuilderFactory.CreateHostBuilder(ctx)) : null;
         var parentCommand = new NyxSystemConsoleCommand<TCliCommand>(
             _commandName,
@@ -108,9 +116,20 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
         if (_commandAlias != null) 
             parentCommand.AddAlias(_commandAlias);
 
+        foreach (var item in _commandGlobalOptionAttributes)
+        {
+            var o =
+                new CliParameterBuilder().BuildCommandLineOption(item.Name, item.Type,
+                    item.Description ?? string.Empty);
+            parentCommandGlobalOptions.Add(o);
+            parentCommand.AddGlobalOption(o);
+        }
+
+        var globaOptionsPlusCommandOptions = cliHostBuilderContext.GlobalOptions.Concat(parentCommandGlobalOptions).ToList();
+        
         if (_commandExecuteMethodInfo != null)
         {
-            PopulateCommandFromMethodInfo(_commandExecuteMethodInfo, parentCommand);
+            PopulateCommandFromMethodInfo(_commandExecuteMethodInfo, parentCommand, globaOptionsPlusCommandOptions );
         }
 
         foreach (var method in _subCommands)
@@ -128,7 +147,7 @@ internal class TypedChildCommandBuilder<TCliCommand> : BaseCommandBuilder, IComm
             var subCommand = new NyxSystemConsoleCommand<TCliCommand>(method.SubCommandAttribute.Name, method.Description.Description, subHostBuilderFactory);
             if (method.SubCommandAttribute.HasAlias)
                 subCommand.AddAlias(method.SubCommandAttribute.Alias);
-            PopulateCommandFromMethodInfo(method.Info, subCommand);
+            PopulateCommandFromMethodInfo(method.Info, subCommand, globaOptionsPlusCommandOptions);
             parentCommand.AddCommand(subCommand);
         }
         
