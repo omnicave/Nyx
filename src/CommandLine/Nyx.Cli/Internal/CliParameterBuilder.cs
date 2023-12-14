@@ -7,11 +7,11 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 
-namespace Nyx.Cli.CommandBuilders;
+namespace Nyx.Cli.Internal;
 
 internal class CliParameterBuilder
 {
-    private Option BuildDateTimeOption(string name, ParameterInfo p, string description)
+    private Option BuildDateTimeOption(string name, string description)
     {
         return new Option<DateTime>(
             $"--{name}",
@@ -59,43 +59,87 @@ internal class CliParameterBuilder
                throw new InvalidOperationException($"Cannot create a generic instance of Option for {type}.");
     }
 
-    public (bool isArgument, Symbol symbol, bool isGlobalOption) BuildArgumentOrOption(string name, TypeInfo type, ParameterInfo parameterInfo, IEnumerable<Option> globalOptions)
+    private bool AllowsMultipleValues(TypeInfo type)
     {
-        bool allowMultiple = false;
-
         if (type != typeof(string))
         {
             if (type.IsArray)
             {
-                //type = type.GetElementType()?.GetTypeInfo() ?? throw new InvalidOperationException("Array error.");
-                allowMultiple = true;
+                return true;
             }
             else if (ImplementsEnumerableT(type))
             {
-                // var enumerableContract = type.GetInterfaces()
-                //                              .SingleOrDefault(x => x.IsGenericType && x.GetGenericTypeDefinition() == typeof(IEnumerable<>))
-                //                          ?? throw new InvalidOperationException();
-                //type = enumerableContract.GetGenericArguments().FirstOrDefault()?.GetTypeInfo() ?? throw new InvalidOperationException();
-        
-                allowMultiple = true;
+                return true;
             }    
         }
+
+        return false;
+    }
+    
+    public Option BuildCommandLineOption(string name, TypeInfo type, string? description = null)
+    {
+        var allowMultiple = AllowsMultipleValues(type);
         
+        if (type == typeof(bool))
+        {
+            if (allowMultiple) 
+                throw new InvalidOperationException();
+            
+            return new Option<bool>(
+                    $"--{name}",
+                    description ?? string.Empty
+                );
+        }
         
+        if (type == typeof(DateTime))
+        {
+            return EnableAllowMultipleInstancesOnOption(
+                BuildDateTimeOption(
+                    name,
+                    description ?? string.Empty),
+                allowMultiple
+            );
+        }
+
+        return EnableAllowMultipleInstancesOnOption(BuildGenericOptionFromType(type, name, description ?? string.Empty), allowMultiple);
+    }
+
+    protected bool DetermineHeuristicallyIfParameterIsACliArgument(ParameterInfo parameterInfo)
+    {
+        if (parameterInfo.ParameterType == typeof(bool))
+            return false;
+        
+        if (parameterInfo.ParameterType.IsArray)
+        {
+            // if parameter is an array then for sure it's an option, since it needs to be specified multiple times
+            return false;
+        }
+
+        if (parameterInfo.IsOptional)
+            // parameter is optional, so yeah it's an option
+            return false;
+        
+        // parameter is not optional, does it have a default tho?
+        if (parameterInfo.HasDefaultValue)
+            return false;
+            
+        return true;
+
+        
+    } 
+
+    public (bool isArgument, Symbol symbol, bool isGlobalOption) BuildArgumentOrOption(string name, TypeInfo type, ParameterInfo parameterInfo, IEnumerable<Option> globalOptions)
+    {
+        var allowMultiple = AllowsMultipleValues(type);
         var desc = (parameterInfo.GetCustomAttribute<DescriptionAttribute>() ?? DescriptionAttribute.Default)
             .Description;
         
         if (type == typeof(bool))
         {
-            if (allowMultiple) throw new InvalidOperationException();
-            
-            return (
-                false, 
-                new Option<bool>(
-                    $"--{name}",
-                    desc
-                ),
-                false);
+            // short circuit the flow and return immediately with a command line option
+            if (allowMultiple) 
+                throw new InvalidOperationException();
+            return (false, BuildCommandLineOption(name, type, desc), false);
         }
 
         // determine if argument is an option, or a required argument
@@ -107,25 +151,18 @@ internal class CliParameterBuilder
 #pragma warning restore CS0612
         var isCliOption = parameterCustomAttributes.OfType<CliOptionAttribute>().Any();
         
-        if (!isCliArgument && !isCliOption)
-        {
-            if (!parameterInfo.IsOptional)
-            {
-                isCliArgument = true;
-                isCliOption = false;
-            }
-            else
-            {
-                isCliOption = true;
-                isCliArgument = false;
-            }
-        }
-
         // sanity check
         if (isCliArgument && isCliOption)
             throw new InvalidOperationException(
                 "Cannot have a Option and Argument attribute at the same time on a parameter");
 
+        
+        if (!isCliArgument && !isCliOption)
+        {
+            // attributes where not specified, let's do some heuristics
+            isCliArgument = DetermineHeuristicallyIfParameterIsACliArgument(parameterInfo);
+        }
+        
         if (isCliArgument)
         {
             if (allowMultiple) 
@@ -146,30 +183,27 @@ internal class CliParameterBuilder
                 false
             );
         }
+        
+        // we need to handle the scenario where the command is referencing an a global argument, either at the root
+        // command, or at the parent.
+        // we always assume global options are stored in the root command
+        var opt = globalOptions.FirstOrDefault(opt => opt.Name == name);
 
-        // we reached this point, then we are dealing with an option
-        if (type == typeof(DateTime))
-        {
+        if (opt != null)
             return (
                 false,
-                EnableAllowMultipleInstances(
-                    BuildDateTimeOption(
-                        name,
-                        parameterInfo,
-                        desc),
-                    allowMultiple
-                ),
-                false
+                opt,
+                true
             );
-        }
-
-        // we always assume global options are stored in the root command
-        var globalOption = globalOptions.FirstOrDefault(opt => opt.Name == name);
+        
+        // argument doesn't reference a global option, let's build it
+        opt = BuildCommandLineOption(name, type, desc);
         return (
             false,
-            globalOption ?? EnableAllowMultipleInstances(BuildGenericOptionFromType(type, name, desc), allowMultiple),
-            globalOption != null
+            opt,
+            false
         );
+
     }
 
     public bool IsValidOptionOrArgumentParameter(Type type) => type.IsValueType || type.IsArray || ImplementsEnumerableT(type) || IsFileOrDirectoryType(type);
@@ -180,7 +214,7 @@ internal class CliParameterBuilder
     private bool IsFileOrDirectoryType(Type type) =>
         type == typeof(FileInfo) || type == typeof(DirectoryInfo) || type == typeof(File) || type == typeof(Directory);
 
-    private static Option EnableAllowMultipleInstances(Option o, bool value = true)
+    private static Option EnableAllowMultipleInstancesOnOption(Option o, bool value = true)
     {
         o.AllowMultipleArgumentsPerToken = value;
         return o;

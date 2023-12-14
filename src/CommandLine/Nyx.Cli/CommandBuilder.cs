@@ -6,7 +6,7 @@ namespace Nyx.Cli;
 
 internal interface ICommandBuilder
 {
-    Command Build();
+    Command Build(CliHostBuilderContext cliHostBuilderContext);
 }
 
 internal interface IRootCommandBuilder
