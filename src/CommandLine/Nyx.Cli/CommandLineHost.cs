@@ -30,10 +30,14 @@ public class CommandLineHost : IHost
     // private readonly Parser _parser;
     private static IHost? _primaryInstance = null;
 
-    internal CommandLineHost(IHost internalHost)
+    internal CommandLineHost(Parser parser, IHost internalHost)
     {
+        Configuration = parser.Configuration;
         PrimaryInstance = internalHost;
     }
+
+    
+    internal CommandLineConfiguration Configuration { get; }
 
     public void Dispose() { }
 

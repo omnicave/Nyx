@@ -304,7 +304,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             (parseResult, lifetime)
         );
         
-        return new CommandLineHost(host);
+        return new CommandLineHost(parser, host);
     }
 
     private CommandLineBuilder BuildCommandLineBuilder()
