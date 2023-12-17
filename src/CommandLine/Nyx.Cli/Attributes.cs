@@ -40,12 +40,6 @@ public class CliSubCommandAttribute : CliCommandAttribute
     }
 }
 
-[AttributeUsage(AttributeTargets.Parameter)]
-[Obsolete("Replace with CliArgumentAttribute.")]
-public class CliSubCommandArgumentAttribute : Attribute
-{   
-}
-
 /// <summary>
 ///     Marks the parameter of a method as an argument, non-optional input, required for the subcommand / command. 
 /// </summary>
