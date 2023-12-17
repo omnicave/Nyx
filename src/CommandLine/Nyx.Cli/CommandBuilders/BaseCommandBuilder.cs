@@ -16,20 +16,26 @@ internal abstract class BaseCommandBuilder
         {
         }
     }
-    
-    protected void PopulateCommandArgumentsAndOptions(Command command, IEnumerable<Option> globalOptions, ParameterInfo[] parameters, HandlerDescriptor descriptor)
+
+    protected void PopulateCommandArgumentsAndOptions(
+        Command command, 
+        IEnumerable<Option> globalOptions,
+        ParameterInfo[] parameters, 
+        HandlerDescriptor descriptor
+        )
     {
         var cliParameterBuilder = new CliParameterBuilder();
-        
+
         var parameterInfoLookup = parameters.ToDictionary<ParameterInfo, string>(x => x.Name!);
 
         descriptor.ParameterDescriptors
-            .Where(x=> cliParameterBuilder.IsValidOptionOrArgumentParameter(x.ValueType) )
-            .Select(parameterDescriptor => cliParameterBuilder.BuildArgumentOrOption(
-                parameterDescriptor.ValueName, 
-                parameterDescriptor.ValueType.GetTypeInfo(), 
-                parameterInfoLookup[parameterDescriptor.ValueName], 
-                globalOptions
+            .Where(x => cliParameterBuilder.IsValidOptionOrArgumentParameter(x.ValueType))
+            .Select(
+                parameterDescriptor => cliParameterBuilder.BuildArgumentOrOptionFromParameterInfo(
+                    parameterDescriptor.ValueName,
+                    parameterDescriptor.ValueType.GetTypeInfo(),
+                    parameterInfoLookup[parameterDescriptor.ValueName],
+                    globalOptions
                 )
             )
             .ToList()
