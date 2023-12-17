@@ -28,33 +28,46 @@ public class ChildCommandTests
     public class CommandWithoutExecute
     {
     }
+    
+    [CliCommand("sub")]
+    public class CommandWithSubCommandAndOptions
+    {
+        [CliSubCommand("sub2")]
+        public Task SubCommand(
+            [CliOption] string? opt = null
+        )
+        {
+            return Task.CompletedTask;
+        }
+    }
 
-    // [Theory]
-    // [InlineData(typeof(Command), "sub", true )]
-    // [InlineData(typeof(CommandWithoutAttribute), nameof(CommandWithoutAttribute), true )]
-    // [InlineData(typeof(CommandWithoutExecute), "sub", false )]
-    // public async Task RegisterTypedCommand(Type t, string commandName, bool isSuccess)
-    // {
-    //     var builder = CommandLineHostBuilder.Create(new string[] { })
-    //         .RegisterCommand(t);
-    //
-    //     var p = () => (CommandLineHost)builder.Build();
-    //
-    //     if (!isSuccess)
-    //     {
-    //         p.Should().Throw<InvalidOperationException>();
-    //     }
-    //     else
-    //     {
-    //         var host = p.Should()
-    //             .NotThrow().Subject;
-    //
-    //         var command = host.Configuration.RootCommand.Subcommands
-    //             .Should()
-    //             .ContainSingle()
-    //             .Subject;
-    //
-    //         command.Name.Should().Be(commandName.ToLower());
-    //     }
-    // }
+    [Theory]
+    [InlineData(typeof(Command), "sub", true )]
+    [InlineData(typeof(CommandWithoutAttribute), nameof(CommandWithoutAttribute), true )]
+    [InlineData(typeof(CommandWithoutExecute), "sub", false )]
+    [InlineData(typeof(CommandWithSubCommandAndOptions), "sub", true )]
+    public async Task RegisterTypedCommand(Type t, string commandName, bool isSuccess)
+    {
+        var builder = CommandLineHostBuilder.Create(new string[] { })
+            .RegisterCommand(t);
+    
+        var p = () => (CommandLineHost)builder.Build();
+    
+        if (!isSuccess)
+        {
+            p.Should().Throw<InvalidOperationException>();
+        }
+        else
+        {
+            var host = p.Should()
+                .NotThrow().Subject;
+    
+            var command = host.Configuration.RootCommand.Subcommands
+                .Should()
+                .ContainSingle()
+                .Subject;
+    
+            command.Name.Should().Be(commandName.ToLower());
+        }
+    }
 }

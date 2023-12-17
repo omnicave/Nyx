@@ -57,7 +57,7 @@ internal class CliParameterBuilder
             $"--{name}"
         }.Concat(
             string.IsNullOrWhiteSpace(alias) ? Array.Empty<string>() : new[] { $"-{alias}" }
-        );
+        ).ToArray();
         
         // handle the specific cases
         if (typeof(T) == typeof(DateTime))
