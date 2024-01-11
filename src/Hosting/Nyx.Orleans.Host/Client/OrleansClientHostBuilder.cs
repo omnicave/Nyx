@@ -22,14 +22,14 @@ public class OrleansClientHostBuilder : BaseHostBuilder
         _args = args;
     }
 
-    internal readonly List<Action<IClientBuilder>> ClientExtraConfiguration = new();
+    internal readonly List<Action<HostBuilderContext, IClientBuilder>> ClientExtraConfiguration = new();
 
     public override IHost Build()
     {
-        var x = ClientExtraConfiguration.Concat(new Action<IClientBuilder>[]
+        var x = ClientExtraConfiguration.Concat(new Action<HostBuilderContext, IClientBuilder>[]
             {
-                builder => builder.Services.AddOrleansSerializationDefaults(),
-                builder => builder
+                (_, builder) => builder.Services.AddOrleansSerializationDefaults(),
+                (_, builder) => builder
                     .Configure<ClusterOptions>(options =>
                     {
                         options.ClusterId = _clusterId;

@@ -40,27 +40,38 @@ public static partial class OrleansClientBuilderExtensions
 public static class OrleansClientHostBuilderExtensions
 {
     public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, Action<IClientBuilder> configurator)
-        where TBuilder : IHostBuilder =>
-        builder.AddOrleansClusterClient(new[] { configurator });
-
-    public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, IEnumerable<Action<IClientBuilder>> configurator)
         where TBuilder : IHostBuilder
     {
-        
-        builder.UseOrleansClient((_, clientBuilder) =>
+        Action<HostBuilderContext, IClientBuilder> a = (_, b) => configurator(b); 
+        return builder.AddOrleansClusterClient(new[] { a });
+    }
+
+    public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, IEnumerable<Action<HostBuilderContext, IClientBuilder>> configurator)
+        where TBuilder : IHostBuilder
+    {
+        builder.UseOrleansClient((hostBuilderContext, clientBuilder) =>
         {
             foreach (var action in configurator)
             {
-                action(clientBuilder);
+                action(hostBuilderContext, clientBuilder);
             }
         });
         
         return builder;
     }
+    
+    public static OrleansClientHostBuilder ConfigureClient(this OrleansClientHostBuilder builder, Action<HostBuilderContext, IClientBuilder> d)
+    {
+        if (d == null) throw new ArgumentNullException(nameof(d));
+        builder.ClientExtraConfiguration.Add( d);
+        return builder;
+    }
 
     public static OrleansClientHostBuilder ConfigureClient(this OrleansClientHostBuilder builder, Action<IClientBuilder> d)
     {
-        builder.ClientExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
+        if (d == null) throw new ArgumentNullException(nameof(d));
+        
+        builder.ClientExtraConfiguration.Add( (_, b) => d(b));
         return builder;
     }
 }
