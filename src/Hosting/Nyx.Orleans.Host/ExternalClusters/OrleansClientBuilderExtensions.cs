@@ -17,7 +17,7 @@ public static partial class OrleansClientBuilderExtensions
             collection =>
             {
                 collection
-                    .AddSingletonNamedService<IClusterClient>(name,
+                    .AddKeyedSingleton<IClusterClient>(name,
                         (provider, s) => new ExternalClusterClient(provider, new[] {configurator}))
                     .AddHostedService<ClusterClientConnector>(provider => new ClusterClientConnector(name, provider));
 

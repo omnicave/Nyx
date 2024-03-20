@@ -14,7 +14,7 @@ public class ExternalClusterClientProvider : IExternalOrleansClusterClientProvid
     
     public IClusterClient GetClusterClient(string name)
     {
-        var remoteClusterClient = _sp.GetRequiredServiceByName<IClusterClient>(name);
+        var remoteClusterClient = _sp.GetRequiredKeyedService<IClusterClient>(name);
         return remoteClusterClient;
     }
 }
