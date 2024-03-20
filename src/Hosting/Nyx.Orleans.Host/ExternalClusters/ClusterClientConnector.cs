@@ -60,7 +60,7 @@ public class ClusterClientConnector : IHostedService
     {
         var clusterClient = _name == null
             ? _serviceProvider.GetRequiredService<IClusterClient>()
-            : _serviceProvider.GetRequiredServiceByName<IClusterClient>(_name);
+            : _serviceProvider.GetRequiredKeyedService<IClusterClient>(_name);
         return clusterClient;
     }
 
