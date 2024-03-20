@@ -1,17 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Streaming" Version="7.2.2" />
-    <PackageReference Include="NATS.Client" Version="1.0.8" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" />
+    <PackageReference Include="NATS.Client" />
   </ItemGroup>
-
   
   <ItemGroup>
     <ProjectReference Include="..\Nyx.Orleans\Nyx.Orleans.csproj" />

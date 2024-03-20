@@ -705,31 +705,11 @@ spec:
                                     type: object
                                   type: array
                                 limits:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                                 requests:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                               type: object
                             securityContext:
                               properties:
@@ -1275,31 +1255,11 @@ spec:
                                     type: object
                                   type: array
                                 limits:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                                 requests:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                               type: object
                             securityContext:
                               properties:
@@ -1854,31 +1814,11 @@ spec:
                                     type: object
                                   type: array
                                 limits:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                                 requests:
-                                  additionalProperties:
-                                    properties:
-                                      format:
-                                        enum:
-                                        - DecimalExponent
-                                        - BinarySI
-                                        - DecimalSI
-                                        type: string
-                                      value:
-                                        type: string
-                                    type: object
                                   type: object
+                                  x-kubernetes-preserve-unknown-fields: true
                               type: object
                             securityContext:
                               properties:
@@ -2071,18 +2011,8 @@ spec:
                             type: string
                         type: object
                       overhead:
-                        additionalProperties:
-                          properties:
-                            format:
-                              enum:
-                              - DecimalExponent
-                              - BinarySI
-                              - DecimalSI
-                              type: string
-                            value:
-                              type: string
-                          type: object
                         type: object
+                        x-kubernetes-preserve-unknown-fields: true
                       preemptionPolicy:
                         type: string
                       priority:
@@ -2490,31 +2420,11 @@ spec:
                                                 type: object
                                               type: array
                                             limits:
-                                              additionalProperties:
-                                                properties:
-                                                  format:
-                                                    enum:
-                                                    - DecimalExponent
-                                                    - BinarySI
-                                                    - DecimalSI
-                                                    type: string
-                                                  value:
-                                                    type: string
-                                                type: object
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                             requests:
-                                              additionalProperties:
-                                                properties:
-                                                  format:
-                                                    enum:
-                                                    - DecimalExponent
-                                                    - BinarySI
-                                                    - DecimalSI
-                                                    type: string
-                                                  value:
-                                                    type: string
-                                                type: object
                                               type: object
+                                              x-kubernetes-preserve-unknown-fields: true
                                           type: object
                                         selector:
                                           properties:
