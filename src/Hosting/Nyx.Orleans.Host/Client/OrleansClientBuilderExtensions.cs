@@ -1,10 +1,5 @@
 using System.Net;
-using Nyx.Cli;
-using Orleans;
 using Orleans.Configuration;
-using Orleans.Hosting;
-using Orleans.Runtime;
-using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
 namespace Nyx.Orleans.Host;
 
@@ -28,38 +23,55 @@ public static partial class OrleansClientBuilderExtensions
     {
         return clientBuilder.UseStaticClustering(new[] { endpoint }, clusterId, serviceId);
     }
+    
+    public static IClientBuilder ConfigureForPostgresClustering(this IClientBuilder builder, 
+        string connectionString)
+    {
+        builder.UseAdoNetClustering(options =>
+        {
+            options.ConnectionString = connectionString;
+            options.Invariant = "Npgsql";
+        });
+        
+        return builder;
+    }
 }
 
 public static class OrleansClientHostBuilderExtensions
 {
     public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, Action<IClientBuilder> configurator)
-        where TBuilder : IHostBuilder =>
-        builder.AddOrleansClusterClient(new[] { configurator });
-
-    public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, IEnumerable<Action<IClientBuilder>> configurator)
         where TBuilder : IHostBuilder
     {
-        
-        builder.UseOrleansClient((_, clientBuilder) =>
+        Action<HostBuilderContext, IClientBuilder> a = (_, b) => configurator(b); 
+        return builder.AddOrleansClusterClient(new[] { a });
+    }
+
+    public static TBuilder AddOrleansClusterClient<TBuilder>(this TBuilder builder, IEnumerable<Action<HostBuilderContext, IClientBuilder>> configurator)
+        where TBuilder : IHostBuilder
+    {
+        builder.UseOrleansClient((hostBuilderContext, clientBuilder) =>
         {
             foreach (var action in configurator)
             {
-                action(clientBuilder);
+                action(hostBuilderContext, clientBuilder);
             }
         });
         
         return builder;
     }
+    
+    public static OrleansClientHostBuilder ConfigureClient(this OrleansClientHostBuilder builder, Action<HostBuilderContext, IClientBuilder> d)
+    {
+        if (d == null) throw new ArgumentNullException(nameof(d));
+        builder.ClientExtraConfiguration.Add( d);
+        return builder;
+    }
 
     public static OrleansClientHostBuilder ConfigureClient(this OrleansClientHostBuilder builder, Action<IClientBuilder> d)
     {
-        builder.ClientExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
-        return builder;
-    }
-    
-    public static OrleansClientHostBuilder ConfigureCli(this OrleansClientHostBuilder builder, Action<ICommandLineHostBuilder> d)
-    {
-        builder.CliExtraConfiguration.Add(d ?? throw new ArgumentNullException(nameof(d)));
+        if (d == null) throw new ArgumentNullException(nameof(d));
+        
+        builder.ClientExtraConfiguration.Add( (_, b) => d(b));
         return builder;
     }
 }

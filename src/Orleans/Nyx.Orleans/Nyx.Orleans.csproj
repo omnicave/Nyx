@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Sdk" Version="$(OrleansVersion)" />
+    <PackageReference Include="Microsoft.Orleans.Sdk" Version="7.2.2" />
   </ItemGroup>
 
   <ItemGroup>

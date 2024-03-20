@@ -1,26 +1,41 @@
 using System;
+using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
 using System.Linq;
 using System.Reflection;
+using Nyx.Cli.Internal;
 
 namespace Nyx.Cli.CommandBuilders;
 
 internal abstract class BaseCommandBuilder
 {
-    protected void PopulateCommandArgumentsAndOptions(Command command, Command? rootCommand, ParameterInfo[] parameters, HandlerDescriptor descriptor)
+    protected class BaseCommand<T> : Command
+    {
+        public BaseCommand(string name, string? description = null) : base(name, description)
+        {
+        }
+    }
+
+    protected void PopulateCommandArgumentsAndOptions(
+        Command command, 
+        IEnumerable<Option> globalOptions,
+        ParameterInfo[] parameters, 
+        HandlerDescriptor descriptor
+        )
     {
         var cliParameterBuilder = new CliParameterBuilder();
-        
+
         var parameterInfoLookup = parameters.ToDictionary<ParameterInfo, string>(x => x.Name!);
 
         descriptor.ParameterDescriptors
-            .Where(x=> cliParameterBuilder.IsValidOptionOrArgumentParameter(x.ValueType) )
-            .Select(parameterDescriptor => cliParameterBuilder.BuildArgumentOrOption(
-                parameterDescriptor.ValueName, 
-                parameterDescriptor.ValueType.GetTypeInfo(), 
-                parameterInfoLookup[parameterDescriptor.ValueName], 
-                rootCommand?.Options ?? Enumerable.Empty<Option>()
+            .Where(x => cliParameterBuilder.IsValidOptionOrArgumentParameter(x.ValueType))
+            .Select(
+                parameterDescriptor => cliParameterBuilder.BuildArgumentOrOptionFromParameterInfo(
+                    parameterDescriptor.ValueName,
+                    parameterDescriptor.ValueType.GetTypeInfo(),
+                    parameterInfoLookup[parameterDescriptor.ValueName],
+                    globalOptions
                 )
             )
             .ToList()

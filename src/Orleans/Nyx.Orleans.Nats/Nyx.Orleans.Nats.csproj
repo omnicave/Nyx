@@ -8,8 +8,8 @@
 
   
   <ItemGroup>
-    <PackageReference Include="Microsoft.Orleans.Streaming" Version="$(OrleansVersion)" />
-    <PackageReference Include="NATS.Client" Version="1.0.1" />
+    <PackageReference Include="Microsoft.Orleans.Streaming" Version="7.2.2" />
+    <PackageReference Include="NATS.Client" Version="1.0.8" />
   </ItemGroup>
 
   

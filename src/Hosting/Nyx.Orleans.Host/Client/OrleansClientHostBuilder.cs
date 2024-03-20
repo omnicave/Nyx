@@ -1,7 +1,5 @@
-using Nyx.Cli;
 using Nyx.Hosting;
-using Nyx.Orleans.Serialization;
-using Orleans;
+using Nyx.Orleans.Host.Internal;
 using Orleans.Configuration;
 using Orleans.Serialization;
 
@@ -24,17 +22,14 @@ public class OrleansClientHostBuilder : BaseHostBuilder
         _args = args;
     }
 
-    internal readonly List<Action<IClientBuilder>> ClientExtraConfiguration = new();
-    internal readonly List<Action<ICommandLineHostBuilder>> CliExtraConfiguration = new();
+    internal readonly List<Action<HostBuilderContext, IClientBuilder>> ClientExtraConfiguration = new();
 
     public override IHost Build()
     {
-        var x = ClientExtraConfiguration.Concat(new Action<IClientBuilder>[]
+        var x = ClientExtraConfiguration.Concat(new Action<HostBuilderContext, IClientBuilder>[]
             {
-                builder => builder.Services.AddSerializer(
-                    builder => builder.AddNewtonsoftJsonSerializer(type => type.FullName.StartsWith("Nyx"))
-                    ),
-                builder => builder
+                (_, builder) => builder.Services.AddOrleansSerializationDefaults(),
+                (_, builder) => builder
                     .Configure<ClusterOptions>(options =>
                     {
                         options.ClusterId = _clusterId;
@@ -43,33 +38,39 @@ public class OrleansClientHostBuilder : BaseHostBuilder
             })
             .ToList();
 
-        var cli = CommandLineHostBuilder.Create(_clientName, _args ?? Array.Empty<string>());
-        cli.AddOrleansClusterClient(x);
+        var hostBuilder = new HostBuilder()
+            .AddOrleansClusterClient(x);
+        
+        ApplyHostBuilderAppOperations(hostBuilder);
+        return hostBuilder.Build();
 
-        foreach (var item in CliExtraConfiguration)
-        {
-            item(cli);
-        }
+        // var cli = CommandLineHostBuilder.Create(_clientName, _args ?? Array.Empty<string>());
+        // cli.AddOrleansClusterClient(x);
+        //
+        // foreach (var item in CliExtraConfiguration)
+        // {
+        //     item(cli);
+        // }
+        //
+        // if (_isDaemonOrleansClient)
+        // {
+        //     cli.WithRootCommandHandler(async (IHost host) =>
+        //     {
+        //         var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
+        //
+        //         var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+        //         applicationLifetime.ApplicationStopping
+        //             .Register(obj =>
+        //                 {
+        //                     var tcs = (TaskCompletionSource<object>)obj;
+        //                     tcs.TrySetResult(null);
+        //                 },
+        //                 waitForStop);
+        //         //
+        //         await waitForStop.Task;
+        //     });
+        // }
 
-        if (_isDaemonOrleansClient)
-        {
-            cli.WithRootCommandHandler(async (IHost host) =>
-            {
-                var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
-
-                var waitForStop = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
-                applicationLifetime.ApplicationStopping
-                    .Register(obj =>
-                        {
-                            var tcs = (TaskCompletionSource<object>)obj;
-                            tcs.TrySetResult(null);
-                        },
-                        waitForStop);
-                //
-                await waitForStop.Task;
-            });
-        }
-
-        return cli.Build();
+        // return cli.Build();
     }
 }

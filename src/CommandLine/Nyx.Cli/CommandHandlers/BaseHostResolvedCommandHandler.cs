@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Nyx.Cli.CommandBuilders;
+using Nyx.Cli.Internal;
 
 namespace Nyx.Cli.CommandHandlers;
 
@@ -40,8 +41,15 @@ public abstract class BaseHostResolvedCommandHandler : ICommandHandler
                 if (arguments.ContainsKey(key))
                     return arguments[key];
                 else
-                    throw new InvalidOperationException(
-                        "Cannot build parameter list for method because matching argument/option not present.");
+                {
+                    if (!p.IsOptional)
+                    {
+                        throw new InvalidOperationException(
+                            "Cannot build parameter list for method because matching argument/option not supplied.");
+                    }
+
+                    return p.DefaultValue;
+                }
             }
             else
             {

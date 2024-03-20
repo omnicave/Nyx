@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace Nyx.Cli;
 
-class InvocationContextHelper : IInvocationContext
+internal class InvocationContextHelper : IInvocationContext
 {
     private readonly ParseResult _parseResult;
     private InvocationContext? _invocationContext = null;
@@ -119,6 +119,10 @@ class InvocationContextHelper : IInvocationContext
         
         _invocationContext.ExitCode = exitCode;
     }
+
+    public string CommandName => _parseResult.CommandResult.Command.Name;
+
+    public ParseResult ParseResult => _parseResult;
 }
 
 public interface IInvocationContext
@@ -129,4 +133,5 @@ public interface IInvocationContext
     bool TryGetSingleOptionValue<TValue>(string optionName, out TValue value, TValue defaultValueIfNotFound);
 
     void SetExitCode(int exitCode);
+    string CommandName { get; }
 }

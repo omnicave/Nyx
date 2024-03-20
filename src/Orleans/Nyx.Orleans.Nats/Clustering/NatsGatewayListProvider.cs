@@ -20,14 +20,13 @@ public class NatsGatewayListProvider : BaseNatsClusteringBucket, IGatewayListPro
 
     public Task<IList<Uri>> GetGateways()
     {
-        IList<Uri> gateways = MembershipEntryMap
-            .Values
-            .Where(p => p.entry.Status == SiloStatus.Active && p.entry.ProxyPort != 0)
+        IList<Uri> gateways = GetAll()
+            .Where(p => p.Entry.Status == SiloStatus.Active && p.Entry.ProxyPort != 0)
             .Select(p =>
             {
                 var addr = SiloAddress.New(
-                    new IPEndPoint(p.entry.SiloAddress.Endpoint.Address, p.entry.ProxyPort),
-                    p.entry.SiloAddress.Generation
+                    new IPEndPoint(p.Entry.SiloAddress.Endpoint.Address, p.Entry.ProxyPort),
+                    p.Entry.SiloAddress.Generation
                 );
                 return addr.ToGatewayUri();
             })

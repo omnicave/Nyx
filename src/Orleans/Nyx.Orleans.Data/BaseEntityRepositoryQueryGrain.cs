@@ -1,4 +1,5 @@
 using System.Linq.Expressions;
+using Microsoft.Extensions.DependencyInjection;
 using Nyx.Data;
 
 namespace Nyx.Orleans.Data;
@@ -6,35 +7,39 @@ namespace Nyx.Orleans.Data;
 public abstract class BaseEntityRepositoryQueryGrain<TModel, TDao> : BaseQueryGrain<TModel>
     where TDao : class
 {
-    private readonly IEntityRepository<TDao> _cloudResourceRepository;
+    private readonly IDataOperationContextFactory _dataOperationContextFactory;
 
-    protected BaseEntityRepositoryQueryGrain(
-        IEntityRepository<TDao> cloudResourceRepository
-    )
+    protected BaseEntityRepositoryQueryGrain()
     {
-        _cloudResourceRepository = cloudResourceRepository;
+        _dataOperationContextFactory = ServiceProvider.GetRequiredService<IDataOperationContextFactory>();
     }
     
     protected override async Task<IEnumerable<TModel>> ExecuteFetchAll()
     {
-        var queryParameters = GetQueryParameters();
+        await using var context = _dataOperationContextFactory.GetBatchingOperationContext();
+        var repo = context.GetEntityRepository();
         
-        var resultDao = await _cloudResourceRepository.Query(q =>
-        {
-            q = CustomizeEntityQueryable(q);
-            
-            if (queryParameters.SearchString.Length != 0)
-            {
-                q = q.Where(BuildGenericSearchStringFilter(queryParameters.SearchString));
-            }
-            
-            foreach (var filter in queryParameters.Filters.Select(filter => BuildFilterBasedOnModelField(filter.Field, filter.Values) ).ToArray())
-            {
-                q = q.Where(filter);
-            }
+        var queryParameters = GetQueryParameters();
 
-            return q;
-        });
+        var resultDao = await repo.Query<TDao>(
+            q =>
+            {
+                q = CustomizeEntityQueryable(q);
+
+                if (queryParameters.SearchString.Length != 0)
+                {
+                    q = q.Where(BuildGenericSearchStringFilter(queryParameters.SearchString));
+                }
+
+                foreach (var filter in queryParameters.Filters
+                             .Select(filter => BuildFilterBasedOnModelField(filter.Field, filter.Values)).ToArray())
+                {
+                    q = q.Where(filter);
+                }
+
+                return q;
+            }
+        );
 
         var result = new List<TModel>();
         
@@ -48,6 +53,9 @@ public abstract class BaseEntityRepositoryQueryGrain<TModel, TDao> : BaseQueryGr
     
     protected override async Task<IEnumerable<TModel>> ExecuteFetchPage(int page)
     {
+        await using var context = _dataOperationContextFactory.GetBatchingOperationContext();
+        var repo = context.GetEntityRepository();
+        
         var queryParameters = GetQueryParameters();
 
         if (queryParameters.PageSize == 0)
@@ -55,7 +63,7 @@ public abstract class BaseEntityRepositoryQueryGrain<TModel, TDao> : BaseQueryGr
             throw new InvalidOperationException("Cannot fetch a page, without setting the PageSize query parameter.");
         }
         
-        var resultDao = await _cloudResourceRepository.Query(q =>
+        var resultDao = await repo.Query<TDao>(q =>
         {
             q = CustomizeEntityQueryable(q);
             
@@ -115,11 +123,13 @@ public abstract class BaseEntityRepositoryQueryGrain<TModel, TDao> : BaseQueryGr
     /// <returns></returns>
     protected abstract Expression<Func<TDao, bool>> BuildFilterBasedOnModelField(string field, string[] values);
 
-    protected override Task<int> ExecuteCount()
+    protected override async Task<int> ExecuteCount()
     {
+        await using var context = _dataOperationContextFactory.GetBatchingOperationContext();
+        var repo = context.GetEntityRepository();
         var queryParameters = GetQueryParameters();
         
-        return _cloudResourceRepository.Count(q =>
+        return await repo.Count<TDao>(q =>
         {
             q = CustomizeEntityQueryable(q);
             

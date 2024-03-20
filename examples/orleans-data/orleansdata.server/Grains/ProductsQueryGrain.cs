@@ -7,9 +7,6 @@ namespace orleansdata.server.Grains;
 
 public class ProductsQueryGrain : BaseEntityRepositoryQueryGrain<Product, models.dao.Product>
 {
-    public ProductsQueryGrain(IEntityRepository<models.dao.Product> cloudResourceRepository) : base(cloudResourceRepository)
-    {
-    }
 
     protected override Task<Product> ConvertDaoToModel(models.dao.Product dao)
     {

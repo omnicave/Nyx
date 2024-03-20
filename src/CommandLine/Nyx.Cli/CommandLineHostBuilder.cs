@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Builder;
 using System.CommandLine.Hosting;
-using System.CommandLine.Invocation;
-using System.CommandLine.NamingConventionBinder;
 using System.CommandLine.Parsing;
 using System.IO;
 using System.Linq;
@@ -14,11 +12,9 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Hosting.Internal;
 using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Logging.Console;
 using Nyx.Cli.CommandBuilders;
+using Nyx.Cli.Internal;
 using Nyx.Cli.Logging;
 using Nyx.Cli.Rendering;
 using Nyx.Hosting;
@@ -38,6 +34,7 @@ public interface ICommandLineHostBuilder : IHostBuilder
     
     ICommandLineHostBuilder AddYamlConfigurationFile(string path);
 
+    [Obsolete("Depends on underlying framework.")]
     ICommandLineHostBuilder AddGlobalOption<TOption>()
         where TOption : Option, new();
 
@@ -81,24 +78,31 @@ public interface ICommandLineHostBuilder : IHostBuilder
     ICommandLineHostBuilder UseHostBuilderFactory(Func<IInvocationContext, IHostBuilder> hostBuilderFactory);
 }
 
+internal class CliHostBuilderContext
+{
+    public List<Option> GlobalOptions { get; } = new ();
+}
+
 public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 {
+    internal const string InvocationContext = "InvocationContext";
+    
     public static ICommandLineHostBuilder Create(string name, string[] args) => new CommandLineHostBuilder(name, args);
     public static ICommandLineHostBuilder Create(string[] args) => new CommandLineHostBuilder(Assembly.GetEntryAssembly()?.GetName()?.Name ?? "Nyx.Cli", args);
 
     private readonly string _name;
     private readonly string[] _args;
     
-    private readonly List<(Type commandType, Func<Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
-    private readonly List<Action<CommandLineBuilder>> _cliBuilderHandlers = new();
-        
-    private Func<IInvocationContext, IHostBuilder> _hostBuilderFactory = DefaultHostBuilderFactory;
+    private readonly List<(Type commandType, Func<CliHostBuilderContext, Command, ICommandBuilder> commandBuilderHandler)> _commands = new();
+    private readonly List<Action<CliHostBuilderContext, CommandLineBuilder>> _cliBuilderHandlers = new();
+
+    internal ICliHostBuilderFactory HostBuilderFactory = new DefaultCliHostBuilderFactory();
     private Func<IHost, CancellationToken, Task> _hostStartupProc =
         (host, cancellationToken) => host.StartAsync(cancellationToken);
     private Func<IHost, CancellationToken, Task> _hostShutdownProc =
         (host, cancellationToken) => host.StopAsync(cancellationToken);
 
-    private static readonly Func<IInvocationContext, IHostBuilder> DefaultHostBuilderFactory = (_ =>
+    public static readonly Func<IInvocationContext, IHostBuilder> DefaultHostBuilderFactory = (_ =>
             new HostBuilder()
                 .ConfigureHostConfiguration(
                     config =>
@@ -114,11 +118,11 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
                 )
         );
 
-    protected CommandLineHostBuilder(string name, string[] args)
+    private CommandLineHostBuilder(string name, string[] args)
     {
         _name = name;
         _args = args;
-        _cliBuilderHandlers.Add(builder =>
+        _cliBuilderHandlers.Add( (_, builder) =>
         {
             builder
                 .UseVersionOption()
@@ -139,7 +143,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
     public ICommandLineHostBuilder UseHostBuilderFactory(Func<IInvocationContext, IHostBuilder> hostBuilderFactory)
     {
-        _hostBuilderFactory = hostBuilderFactory;
+        HostBuilderFactory = new ActionBasedCliHostBuilderFactory(hostBuilderFactory);
         return this;
     }
 
@@ -174,7 +178,10 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     public ICommandLineHostBuilder RegisterCommand(Type t)
     {
         var mi = GetType()
-            .GetMethod(nameof(RegisterCommandInternal), BindingFlags.Default | BindingFlags.NonPublic | BindingFlags.Instance)?
+            .GetMethod(
+                nameof(RegisterCommandInternal), 
+                BindingFlags.Default | BindingFlags.NonPublic | BindingFlags.Instance
+                )?
             .MakeGenericMethod(t);
 
         if (mi == null)
@@ -191,45 +198,42 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
     private ICommandLineHostBuilder RegisterCommandInternal<T>()
         where T : class
     {
-        _commands.Add(( typeof(T), rootCommand => new TypedChildCommandBuilder<T>(rootCommand) ) );
+        _commands.Add(( typeof(T), (ctx, rootCommand) => new TypedChildCommandBuilder<T>(rootCommand, HostBuilderFactory) ) );
         return this;
     }
 
-    protected IHostBuilder BuildInternalHostBuilder(ParseResult parseResult)
+    private IHostBuilder BuildInternalHostBuilder(InvocationContextHelper invocationContext)
     {
-        var invocationContext = new InvocationContextHelper(parseResult);
-        var hostBuilder = _hostBuilderFactory(invocationContext);
+        Func<IInvocationContext, IHostBuilder>? resolvedHostBuilderFactory = null;
 
-        hostBuilder.ConfigureLogging((hostingContext, logging) =>
+        var isHelpRequested = invocationContext.ParseResult.CommandResult.Children.Any(x =>
+            x.Symbol.Name.Equals("help", StringComparison.OrdinalIgnoreCase));
+
+        if (isHelpRequested)
         {
-            logging.AddConfiguration(hostingContext.Configuration.GetSection("Logging"));
-            logging.AddConsoleFormatter<NyxConsoleFormatter, NyxConsoleFormatterOptions>();
-            logging.AddConsole(options => { options.FormatterName = NyxConsoleFormatter.FormatterName; });
-            logging.AddDebug();
-            logging.AddEventSourceLogger();
-            logging.Configure(options =>
-            {
-                options.ActivityTrackingOptions = ActivityTrackingOptions.SpanId
-                                                  | ActivityTrackingOptions.TraceId
-                                                  | ActivityTrackingOptions.ParentId;
-            });
-            if (invocationContext.TryGetSingleOptionValue<LogLevel>(LogLevelOption.OptionName, out var customLevel))
-            {
-                logging.SetMinimumLevel(customLevel);
-            }
+            return DefaultHostBuilderFactory(invocationContext);
+        }
 
-            logging.AddFilter("Microsoft", LogLevel.Error);
-            logging.AddFilter("System", LogLevel.Error);
-        });
+        if (invocationContext.ParseResult.CommandResult.Command is INyxSystemConsoleCommand c)
+            resolvedHostBuilderFactory = c.HostBuilderFactory;
+
+        if (resolvedHostBuilderFactory == null)
+            resolvedHostBuilderFactory = (context => HostBuilderFactory.CreateHostBuilder(context));
+        
+        var hostBuilder = resolvedHostBuilderFactory(invocationContext);
+
+        this.Properties[InvocationContext] = invocationContext;
+        hostBuilder.Properties[InvocationContext] = invocationContext;
+        hostBuilder.Properties["CliHostBuilder"] = true;
+        
+        ApplyHostBuilderOperations(hostBuilder);
+        
         hostBuilder.ConfigureServices(services =>
         {
-            // services.AddSingleton(context);
-            // services.AddSingleton(context.BindingContext);
-            // services.AddSingleton(context.Console);
-            // services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
-            // services.AddTransient<IInvocationResult>(_ => context.InvocationResult ?? throw new InvalidOperationException("Cannot obtain InvocationResult"));
-            // services.AddTransient(_ => context.ParseResult);
-
+            services.AddSingleton(invocationContext.ParseResult);
+            services.AddSingleton<IInvocationContext>(invocationContext);
+            services.AddSingleton<IAnsiConsole>(AnsiConsole.Console);
+            
             services.AddOutputFormattingSupport();
 
             if (invocationContext.TryGetSingleOptionValue<LogLevel>(LogLevelOption.OptionName,
@@ -263,7 +267,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             services.AddOptions();
         });
         
-        ApplyHostBuilderOperations(hostBuilder);
+        ApplyHostBuilderAppOperations(hostBuilder);
 
         return hostBuilder;
     }
@@ -275,17 +279,19 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
 
         var parseResult = parser.Parse(_args);
 
-        var hostBuilder = BuildInternalHostBuilder(parseResult);
-        hostBuilder.ConfigureServices(services =>
+        var invocationContext = new InvocationContextHelper(parseResult);
+
+        var internalHostBuilder = BuildInternalHostBuilder(invocationContext);
+        internalHostBuilder.ConfigureServices(services =>
         {
             services.AddSingleton(_ => parseResult);
             
-            services.AddSingleton<IInvocationContext, InvocationContextHelper>();
+            services.AddSingleton<IInvocationContext>(invocationContext);
             foreach (var item in _commands)
                 services.AddSingleton(item.commandType);
         });
         
-        var host = hostBuilder.Build();
+        var host = internalHostBuilder.Build();
 
         var lifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();
         lifetime.ApplicationStarted
@@ -298,7 +304,7 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             (parseResult, lifetime)
         );
         
-        return new CommandLineHost(host);
+        return new CommandLineHost(parser, host);
     }
 
     private CommandLineBuilder BuildCommandLineBuilder()
@@ -309,25 +315,23 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             : new Command(_name);
 
         var cliBuilder = new CommandLineBuilder(rootCommand);
+        var cliHostBuilderContext = new CliHostBuilderContext();
 
-        _cliBuilderHandlers.ForEach(x => x(cliBuilder));
+        // apply all operations on CommandLineBuilder
+        _cliBuilderHandlers.ForEach(x => x(cliHostBuilderContext, cliBuilder));
 
         // sub commands are added after the CommandLineBuilder actions are executed.  We config the global options in
         // the handlers, and they need to be available to the CommandBuilders
         foreach (var pair in _commands)
         {
-            var commandBuilder = pair.commandBuilderHandler(rootCommand);
-            rootCommand.AddCommand(commandBuilder.Build());
+            var commandBuilder = pair.commandBuilderHandler(cliHostBuilderContext, rootCommand);
+            rootCommand.AddCommand(commandBuilder.Build(cliHostBuilderContext));
         }
 
         cliBuilder.AddMiddleware(
             async (context, next) =>
             {
                 var argsRemaining = context.ParseResult.UnparsedTokens.ToArray();
-
-                //hostBuilder.UseInvocationLifetime(context);
-
-                // using var host = hostBuilder.Build();
 
                 // ReSharper disable once AccessToDisposedClosure
                 context.BindingContext.AddService(typeof(IHost), _ => CommandLineHost.PrimaryInstance);
@@ -355,27 +359,6 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         return cliBuilder;
     }
 
-    // [Obsolete]
-    // public async Task<int> RunAsync()
-    // {
-    //     var host = Build();
-    //     try
-    //     {
-    //         await host.StartAsync();
-    //
-    //         await host.StopAsync();
-    //
-    //         if (host is CommandLineHost cliHost)
-    //             return cliHost.ExitCode;
-    //
-    //         return 0;
-    //     }
-    //     catch
-    //     {
-    //         return -1;
-    //     }
-    // }
-
     public ICommandLineHostBuilder AddYamlConfigurationFile(string path)
     {
         this.ConfigureAppConfiguration(
@@ -394,9 +377,10 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
         return this;
     }
 
+    [Obsolete("Depends on underlying framework.")]
     public ICommandLineHostBuilder AddGlobalOption<TOption>() where TOption : Option, new()
     {
-        _cliBuilderHandlers.Add(builder => builder.Command.AddGlobalOption(new TOption()));
+        _cliBuilderHandlers.Add((_, builder) => builder.Command.AddGlobalOption(new TOption()));
         return this;
     }
 
@@ -445,12 +429,16 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             : new[] { $"--{name}", $"-{alias}" };
             
         _cliBuilderHandlers.Add(
-            builder => builder.Command.AddGlobalOption(
-                defaultValueProc == null
+            (ctx, builder) =>
+            {
+                var opt = defaultValueProc == null
                     ? new Option<TValue>(aliases, description ?? string.Empty)
-                    : new Option<TValue>(aliases, defaultValueProc, description ?? string.Empty)
-            )
-        );
+                    : new Option<TValue>(aliases, defaultValueProc, description ?? string.Empty);
+
+                // register the global option into the context
+                ctx.GlobalOptions.Add(opt);
+                builder.Command.AddGlobalOption(opt);
+            });
         return this;
     }
 

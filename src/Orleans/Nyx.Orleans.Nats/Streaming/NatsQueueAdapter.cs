@@ -45,47 +45,6 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
             jsm.AddStream(sc);
     }
     
-    public Task QueueMessageBatchAsync<T>(
-        Guid streamGuid, 
-        string streamNamespace, 
-        IEnumerable<T> events, 
-        StreamSequenceToken token,
-        Dictionary<string, object> requestContext)
-    {
-        var subject = _natsNamingConventions.GetSubject(streamGuid, streamNamespace);
-
-        var serializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults();
-        var serializer = JsonSerializer.Create(serializerSettings);
-
-        using var buffer = new MemoryStream(8*1024);
-        using var bufferWriter = new StreamWriter(buffer);
-        using var jsonWriter = new JsonTextWriter(bufferWriter);
-
-        var publishOptions = PublishOptions.Builder()
-            .WithStream(_natsNamingConventions.StreamName)
-            .Build();
-        
-        foreach (var item in events)
-        {
-            var headers = new MsgHeader
-            {
-                [Constants.NatsHeaders.PayloadTypeHeader] = typeof(T).FullName,
-                [Constants.NatsHeaders.StreamIdHeader] = streamGuid.ToString("N"),
-                [Constants.NatsHeaders.StreamNamespaceHeader] = streamNamespace
-            };
-
-            serializer.Serialize(jsonWriter, item);
-            jsonWriter.Flush();
-            
-            var natsMessage = new Msg(subject, headers, buffer.GetBuffer());
-            _jetStream.Publish(
-                natsMessage,
-                publishOptions
-            );
-        }
-        return Task.CompletedTask;
-    }
-    
     public Task QueueMessageBatchAsync<T>(StreamId streamId, IEnumerable<T> events, StreamSequenceToken token,
         Dictionary<string, object> requestContext)
     {
@@ -107,7 +66,8 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
             var headers = new MsgHeader
             {
                 [Constants.NatsHeaders.PayloadTypeHeader] = typeof(T).FullName,
-                [Constants.NatsHeaders.StreamIdHeader] = streamId.ToString(),
+                [Constants.NatsHeaders.StreamKeyHeader] = streamId.GetKeyAsString(),
+                [Constants.NatsHeaders.StreamNamespaceHeader] = streamId.GetNamespace() ?? string.Empty
             };
 
             serializer.Serialize(jsonWriter, item);
