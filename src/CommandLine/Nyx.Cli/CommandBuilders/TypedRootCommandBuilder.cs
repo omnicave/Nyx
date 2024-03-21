@@ -39,7 +39,7 @@ internal class TypedRootCommandBuilder<T> : BaseCommandBuilder, IRootCommandBuil
             Handler = new HostResolvedMethodInfoCommandHandler<T>(executeMethod)
         };
 
-        PopulateCommandArgumentsAndOptions(rootCommand, null, executeMethod.GetParameters(), HandlerDescriptor.FromMethodInfo(executeMethod));
+        PopulateCommandArgumentsAndOptions(rootCommand, Enumerable.Empty<Option>(), executeMethod.GetParameters(), HandlerDescriptor.FromMethodInfo(executeMethod));
 
         return rootCommand;
     }
