@@ -16,6 +16,6 @@ public static partial class CommandLineHostBuilderExtensions
             .ConfigureServices(
                 (context, collection) => collection.AddOutputFormattingSupport()
             )
-            .AddGlobalOption<OutputFormatOption>();
+            .AddGlobalOption<OutputFormatOption>("output", "o");
     }
 }

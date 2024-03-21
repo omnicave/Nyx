@@ -9,8 +9,4 @@ namespace Nyx.Cli;
 
 public static partial class CommandLineHostBuilderExtensions
 {
-    public static ICommandLineHostBuilder AddLogLevelOption(this ICommandLineHostBuilder builder)
-    {
-        return builder.AddGlobalOption<LogLevelOption>();
-    }
 }
