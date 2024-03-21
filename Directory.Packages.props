@@ -9,9 +9,9 @@
         <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="8.0.0" />
         <PackageVersion Include="Microsoft.Extensions.Hosting" Version="8.0.0" />
         
-        <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.8.0" />
-        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.9.2" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.Workspaces.Common" Version="4.9.2" />
+        <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.9.2" />
         
         <PackageVersion Include="OrleansDashboard" Version="8.0.0" />
         <PackageVersion Include="Microsoft.Orleans.Server" Version="8.0.0" />
@@ -32,22 +32,23 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageVersion>
         
-        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.2.3" />
+        <PackageVersion Include="Swashbuckle.AspNetCore" Version="6.5.0" />
         
-        <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="2.2.0" />
+        <PackageVersion Include="NetEscapades.Configuration.Yaml" Version="3.1.0" />
         
         <PackageVersion Include="Spectre.Console" Version="0.44.1-preview.0.29" />
         <PackageVersion Include="System.CommandLine" Version="2.0.0-beta4.22272.1" />
         <PackageVersion Include="System.CommandLine.Hosting" Version="0.4.0-alpha.22272.1" />
         <PackageVersion Include="System.CommandLine.Rendering" Version="0.4.0-alpha.22272.1" />
         
-        <PackageVersion Include="Newtonsoft.Json" Version="13.0.1" />
+        <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
         <PackageVersion Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="7.0.4" />
         
-        <PackageVersion Include="FluentAssertions" Version="6.2.0" />
-        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="16.11.0" />
-        <PackageVersion Include="Moq" Version="4.18.2" />
-        <PackageVersion Include="xunit" Version="2.4.1" />
+        <PackageVersion Include="FluentAssertions" Version="6.12.0" />
+        <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
+        <PackageVersion Include="Moq" Version="4.20.70" />
+        <PackageVersion Include="xunit" Version="2.7.0" />
+        <PackageVersion Include="Lorem.NetCore" Version="1.0.0" />
 
     </ItemGroup>
 </Project>
