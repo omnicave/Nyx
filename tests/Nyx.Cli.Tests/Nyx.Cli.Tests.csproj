@@ -23,8 +23,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\examples\console\console.csproj" />
     <ProjectReference Include="..\..\src\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
+    <PackageReference Include="Lorem.NetCore" />
   </ItemGroup>
 
 </Project>
