@@ -34,10 +34,6 @@ public interface ICommandLineHostBuilder : IHostBuilder
     
     ICommandLineHostBuilder AddYamlConfigurationFile(string path);
 
-    [Obsolete("Depends on underlying framework.")]
-    ICommandLineHostBuilder AddGlobalOption<TOption>()
-        where TOption : Option, new();
-
     ICommandLineHostBuilder AddGlobalOption<TValue>(
         string name
     );
@@ -374,13 +370,6 @@ public class CommandLineHostBuilder : BaseHostBuilder, ICommandLineHostBuilder
             }
         );
 
-        return this;
-    }
-
-    [Obsolete("Depends on underlying framework.")]
-    public ICommandLineHostBuilder AddGlobalOption<TOption>() where TOption : Option, new()
-    {
-        _cliBuilderHandlers.Add((_, builder) => builder.Command.AddGlobalOption(new TOption()));
         return this;
     }
 

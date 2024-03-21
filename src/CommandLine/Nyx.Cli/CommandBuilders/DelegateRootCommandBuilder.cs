@@ -1,6 +1,7 @@
 using System;
 using System.CommandLine;
 using System.CommandLine.NamingConventionBinder;
+using System.Linq;
 using Nyx.Cli.CommandHandlers;
 
 namespace Nyx.Cli.CommandBuilders;
@@ -24,7 +25,7 @@ internal class DelegateRootCommandBuilder : BaseCommandBuilder, IRootCommandBuil
             Handler = new HostResolvedDelegateCommandHandler(_delegate, descriptor)
         };
 
-        PopulateCommandArgumentsAndOptions(command, null, _delegate.Method.GetParameters(), descriptor );
+        PopulateCommandArgumentsAndOptions(command, Enumerable.Empty<Option>(), _delegate.Method.GetParameters(), descriptor );
 
         return command;
     }
