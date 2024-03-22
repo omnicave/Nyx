@@ -27,7 +27,7 @@ plugins:
         - scope
 - - "@semantic-release/exec"
   - prepareCmd: "dotnet pack -c Release -o ./artifacts /p:Version=${nextRelease.version}"  
-    publishCmd: "dotnet nuget push ./artifacts/*.nupkg --skip-duplicate -s github"
+    publishCmd: "dotnet nuget push ./artifacts/*.nupkg --skip-duplicate -s omnicave"
 - - "@semantic-release/github"
   - successComment: false
     failComment: false
