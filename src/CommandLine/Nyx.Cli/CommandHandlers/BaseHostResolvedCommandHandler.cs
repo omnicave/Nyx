@@ -23,7 +23,7 @@ public abstract class BaseHostResolvedCommandHandler : ICommandHandler
             var y = x switch
             {
                 ArgumentResult argumentResult => (x.Symbol.Name, value: x.GetValueForArgument(argumentResult.Argument)),
-                OptionResult optionResult => (x.Symbol.Name, value: x.GetValueForOption(optionResult.Option)),
+                OptionResult optionResult => (x.Symbol.Name, value: optionResult.GetValueOrDefault()),
                 _ => (string.Empty, value: null)
             };
             
