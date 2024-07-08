@@ -24,6 +24,17 @@ internal abstract class BaseCommandBuilder
         HandlerDescriptor descriptor
         )
     {
+
+        TypeInfo ProcessParameterValueType(TypeInfo typeInfo)
+        {
+            // handle nullable types
+            if (typeInfo.IsGenericType && typeInfo.GetGenericTypeDefinition() == typeof(Nullable<>))
+            {
+                return typeInfo.GenericTypeArguments[0].GetTypeInfo();
+            }
+            return typeInfo;
+        }
+        
         var cliParameterBuilder = new CliParameterBuilder();
 
         var parameterInfoLookup = parameters.ToDictionary<ParameterInfo, string>(x => x.Name!);
@@ -33,7 +44,7 @@ internal abstract class BaseCommandBuilder
             .Select(
                 parameterDescriptor => cliParameterBuilder.BuildArgumentOrOptionFromParameterInfo(
                     parameterDescriptor.ValueName,
-                    parameterDescriptor.ValueType.GetTypeInfo(),
+                    ProcessParameterValueType(parameterDescriptor.ValueType.GetTypeInfo()),
                     parameterInfoLookup[parameterDescriptor.ValueName],
                     globalOptions
                 )
