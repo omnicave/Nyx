@@ -9,12 +9,15 @@ internal class NatsNamingConventions
     private readonly string _providerName;
     private readonly IOptions<ClusterOptions> _clusterOptions;
 
-    public NatsNamingConventions(string providerName, IOptions<ClusterOptions> clusterOptions)
+    public NatsNamingConventions(string providerName, IOptions<ClusterOptions> clusterOptions,
+        NatsStreamingOptions natsStreamingOptions)
     {
         _providerName = providerName;
         _clusterOptions = clusterOptions;
 
-        Prefix = $"{clusterOptions.Value.ClusterId}-{clusterOptions.Value.ServiceId}";
+        Prefix = string.IsNullOrEmpty(natsStreamingOptions.Prefix) 
+            ? $"{clusterOptions.Value.ClusterId}-{clusterOptions.Value.ServiceId}"
+            : natsStreamingOptions.Prefix;
         SubjectPattern = $"{Prefix}-{providerName}.>";
         StreamName = $"orleans-streaming-{Prefix}-{providerName}";
         StreamConsumerName = $"orleans-streaming-{Prefix}-{providerName}";

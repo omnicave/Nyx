@@ -19,32 +19,37 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
     private readonly NatsNamingConventions _natsNamingConventions;
     private readonly IJetStream _jetStream;
 
-    public NatsQueueAdapter(string name, IStreamQueueMapper streamQueueMapper, IOptions<ClusterOptions> clusterOptions, NatsStreamingOptions natsStreamingOptions)
+    public NatsQueueAdapter(string name, IStreamQueueMapper streamQueueMapper, IOptions<ClusterOptions> clusterOptions,
+        NatsStreamingOptions natsStreamingOptions)
     {
         _streamQueueMapper = streamQueueMapper;
         _natsStreamingOptions = natsStreamingOptions;
         Name = name;
-        
+
         _connectionFactory = new ConnectionFactory();
         _managementConnection = _connectionFactory.CreateConnection(_natsStreamingOptions.NatsUrl);
         _producerConnection = _connectionFactory.CreateConnection(_natsStreamingOptions.NatsUrl);
         _jetStream = _producerConnection.CreateJetStreamContext();
 
-        _natsNamingConventions = new NatsNamingConventions(name, clusterOptions);
-        
+        _natsNamingConventions = new NatsNamingConventions(name, clusterOptions, natsStreamingOptions);
+
         var jsm = _managementConnection.CreateJetStreamManagementContext();
-        var sc = StreamConfiguration.Builder()
+        var scb = StreamConfiguration.Builder()
             .WithName(_natsNamingConventions.StreamName)
             .AddSubjects(_natsNamingConventions.SubjectPattern)
-            .WithRetentionPolicy(RetentionPolicy.WorkQueue)
-            .Build();
+            .WithRetentionPolicy(RetentionPolicy.WorkQueue);
+
+        scb = natsStreamingOptions.StreamConfigurationBuilder != null 
+            ? natsStreamingOptions.StreamConfigurationBuilder(scb)
+            : scb;
+        var sc = scb.Build();
 
         if (jsm.GetStreamNames().Any(x => x.Equals(_natsNamingConventions.StreamName)))
             jsm.UpdateStream(sc);
         else
             jsm.AddStream(sc);
     }
-    
+
     public Task QueueMessageBatchAsync<T>(StreamId streamId, IEnumerable<T> events, StreamSequenceToken token,
         Dictionary<string, object> requestContext)
     {
@@ -53,14 +58,14 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
         var serializerSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaults();
         var serializer = JsonSerializer.Create(serializerSettings);
 
-        using var buffer = new MemoryStream(8*1024);
+        using var buffer = new MemoryStream(8 * 1024);
         using var bufferWriter = new StreamWriter(buffer);
         using var jsonWriter = new JsonTextWriter(bufferWriter);
 
         var publishOptions = PublishOptions.Builder()
             .WithStream(_natsNamingConventions.StreamName)
             .Build();
-        
+
         foreach (var item in events)
         {
             var headers = new MsgHeader
@@ -72,22 +77,23 @@ public class NatsQueueAdapter : IQueueAdapter, IDisposable
 
             serializer.Serialize(jsonWriter, item);
             jsonWriter.Flush();
-            
+
             var natsMessage = new Msg(subject, headers, buffer.GetBuffer());
             _jetStream.Publish(
                 natsMessage,
                 publishOptions
             );
         }
+
         return Task.CompletedTask;
     }
 
     public IQueueAdapterReceiver CreateReceiver(QueueId queueId)
     {
         return new NatsReceiver(
-            Name, 
+            Name,
             queueId,
-            _connectionFactory, 
+            _connectionFactory,
             _natsNamingConventions,
             _natsStreamingOptions);
     }

@@ -30,4 +30,10 @@ public class NatsSiloPersistentStreamConfigurator : SiloPersistentStreamConfigur
         this.Configure<HashRingStreamQueueMapperOptions>(builder => builder.Configure(o => o.TotalQueueCount = queueCount));
         return this;
     }
+
+    public NatsSiloPersistentStreamConfigurator WithPrefix(string prefix)
+    {
+        this.Configure<NatsStreamingOptions>(builder => builder.Configure(o => o.Prefix = prefix));
+        return this;
+    }
 }

@@ -1,3 +1,5 @@
+using NATS.Client.JetStream;
+
 namespace Nyx.Orleans.Nats.Streaming;
 
 public class NatsStreamingOptions
@@ -8,4 +10,8 @@ public class NatsStreamingOptions
     }
 
     public string NatsUrl { get; set; }
+    
+    public string? Prefix { get; set; }
+
+    public Func<StreamConfiguration.StreamConfigurationBuilder, StreamConfiguration.StreamConfigurationBuilder>? StreamConfigurationBuilder { get; set; }
 }
