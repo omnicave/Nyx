@@ -28,7 +28,7 @@ public abstract class BaseHostResolvedCommandHandler : ICommandHandler
             };
             
             if (y.value != null)
-                arguments.Add(y.Name.ToLower(), y.Item2);
+                arguments.Add(y.Name.ToLower(), y.value);
         }
 
         var parameterBuilder = new CliParameterBuilder();
@@ -42,10 +42,10 @@ public abstract class BaseHostResolvedCommandHandler : ICommandHandler
                     return arguments[key];
                 else
                 {
-                    if (!p.IsOptional)
+                    if (!p.IsOptional && !p.HasDefaultValue)
                     {
                         throw new InvalidOperationException(
-                            "Cannot build parameter list for method because matching argument/option not supplied.");
+                            $"Non optional '{p.Name ?? "n/a"}' parameter not found in command line arguments");
                     }
 
                     return p.DefaultValue;
