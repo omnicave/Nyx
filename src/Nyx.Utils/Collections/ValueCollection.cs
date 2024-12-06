@@ -1,13 +1,17 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
 namespace Nyx.Utils.Collections;
 
 using System.Collections;
 using System.Collections.Immutable;
 using System.Collections.ObjectModel;
 
-public sealed class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueCollection<T>>
+[JsonConverter(typeof(ValueCollectionJsonConverterFactory))]
+public class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueCollection<T>>
 {
-    private readonly IImmutableList<T> _items;
-    private readonly int _hashCode;
+    private IImmutableList<T> _items;
+    private int _hashCode;
 
     public static ValueCollection<T> Empty { get; } = Enumerable.Empty<T>().AsValueCollection();
 
@@ -15,6 +19,14 @@ public sealed class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueColl
     
     // required for json serialization/deserialization
     public ValueCollection(IEnumerable<T> source) : this(FromAnyEnumerable(source)) { }
+    public ValueCollection(IList<T> source) : this(FromAnyEnumerable(source)) { }
+    
+    [JsonConstructor]
+    public ValueCollection(ICollection<T> source) : this(FromAnyEnumerable(source)) { }
+    
+    public ValueCollection(IImmutableList<T> source) : this(FromAnyEnumerable(source)) { }
+    
+    public ValueCollection(T[] source) : this(FromAnyEnumerable(source)) { }
     
     // equality operators
     public static bool operator ==(ValueCollection<T>? left, ValueCollection<T>? right) 
@@ -62,6 +74,7 @@ public sealed class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueColl
     IEnumerator IEnumerable.GetEnumerator() => _items.GetEnumerator();
 
     public int Count => _items.Count;
+    
 
     public override bool Equals(object? obj)
     {
@@ -73,13 +86,17 @@ public sealed class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueColl
         };
     }
     
+    // ReSharper disable once NonReadonlyMemberInGetHashCode
     public override int GetHashCode() => _hashCode;
+    
     public bool Equals(ValueCollection<T>? other) => other != null && other._hashCode.Equals(_hashCode);
 
     public T this[int index] => _items[index];
-    
+
     public IImmutableList<T> Add(T value) => _items.Add(value).AsValueCollection();
+
     public IImmutableList<T> AddRange(IEnumerable<T> items) => _items.AddRange(items).AsValueCollection();
+
     public IImmutableList<T> Clear() => _items.Clear().AsValueCollection();
     public int IndexOf(T item, int index, int count, IEqualityComparer<T>? equalityComparer)
         => _items.IndexOf(item, index, count, equalityComparer);
@@ -110,4 +127,55 @@ public sealed class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueColl
 
     public IImmutableList<T> SetItem(int index, T value)
         => _items.SetItem(index, value).AsValueCollection();
+}
+
+public class ValueCollectionJsonConverterFactory : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return (typeToConvert.GetGenericTypeDefinition() == typeof(ValueCollection<>));
+    }
+
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        var args = typeToConvert.GetGenericArguments();
+        var collectionValueType = args[0];
+
+        var converterType = typeof(ValueCollectionConverter<>).MakeGenericType(collectionValueType);
+
+        return (JsonConverter)(Activator.CreateInstance(converterType) ?? throw new InvalidOperationException());
+    }
+}
+
+public class ValueCollectionConverter<TValue> : JsonConverter<ValueCollection<TValue>>
+{
+    public override ValueCollection<TValue>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        var innerConverter = (JsonConverter<TValue>)options.GetConverter(typeof(TValue));
+        
+        if (reader.TokenType != JsonTokenType.StartArray)
+            throw new JsonException(); // Unexpected token type.  JsonTokenType.Null is handled by the framework, unless we set HandleNull => true (which we didn't).
+        var list = new List<TValue>();
+        while (reader.Read())
+        {
+            if (reader.TokenType == JsonTokenType.EndArray)
+                break;
+            var item = innerConverter.Read(ref reader, typeof(TValue), options);
+            // TODO: optionally add checks to make sure innerConverter correctly advanced the reader to the end of the current token.
+            list.Add(item!);
+        }
+        return list;
+    }
+
+    public override void Write(Utf8JsonWriter writer, ValueCollection<TValue> value, JsonSerializerOptions options)
+    {
+        var innerConverter = (JsonConverter<TValue>)options.GetConverter(typeof(TValue));
+
+        
+        writer.WriteStartArray();
+        foreach (var item in value)
+            innerConverter.Write(writer, item, options);
+        
+        writer.WriteEndArray();
+    }
 }
