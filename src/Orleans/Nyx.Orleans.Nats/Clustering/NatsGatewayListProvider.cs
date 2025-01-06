@@ -11,16 +11,15 @@ public class NatsGatewayListProvider : BaseNatsClusteringBucket, IGatewayListPro
     private readonly GatewayOptions _gatewayOptions;
 
 
-    public Task InitializeGatewayListProvider()
+    public async Task InitializeGatewayListProvider()
     {
-        Init();
-        
-        return Task.CompletedTask;
+        await Init();
     }
 
-    public Task<IList<Uri>> GetGateways()
+    public async Task<IList<Uri>> GetGateways()
     {
-        IList<Uri> gateways = GetAll()
+        var entries = await GetAll();
+        IList<Uri> gateways = entries 
             .Where(p => p.Entry.Status == SiloStatus.Active && p.Entry.ProxyPort != 0)
             .Select(p =>
             {
@@ -32,7 +31,7 @@ public class NatsGatewayListProvider : BaseNatsClusteringBucket, IGatewayListPro
             })
             .ToList();
 
-        return Task.FromResult(gateways);
+        return gateways;
 
     }
 

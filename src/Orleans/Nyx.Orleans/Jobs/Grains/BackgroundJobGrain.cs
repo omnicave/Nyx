@@ -17,7 +17,7 @@ public abstract class BackgroundJobGrain<TJobDetails> : Grain, IBackgroundJobGra
     private CancellationTokenSource? _cancellationTokenSource = null;
     private Task? _task = null;
     private IServiceScope? _scope = null;
-    private IDisposable? _cleanupTimer = null;
+    private IGrainTimer? _cleanupTimer = null;
 
     public async Task Start()
     {
@@ -100,15 +100,17 @@ public abstract class BackgroundJobGrain<TJobDetails> : Grain, IBackgroundJobGra
         {
             case JobStatus.Finished:
             case JobStatus.Failed:
-
-                _cleanupTimer = RegisterTimer(CleanupInvoker, null, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1));
                 
+                _cleanupTimer = this.RegisterGrainTimer(CleanupInvoker, new GrainTimerCreationOptions(TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(1))
+                {
+                    Interleave = true
+                });
 
                 break;
         }
     }
 
-    private Task CleanupInvoker(object arg) => Task.Run(() => this.AsReference<IBackgroundJobGrain<TJobDetails>>().Cleanup());
+    private Task CleanupInvoker(CancellationToken cancellationToken) => Task.Run(() => this.AsReference<IBackgroundJobGrain<TJobDetails>>().Cleanup());
 
     private async Task SetErrorInformation(JobErrorInformation errorInformation)
     {

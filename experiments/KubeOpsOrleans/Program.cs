@@ -1,10 +1,6 @@
 using KubeOps.Operator;
-using KubeOpsOrleans.Operator;
 using KubeOpsOrleans.Services;
-using Microsoft.AspNetCore.Mvc.ApplicationParts;
 using Nyx.Orleans.Host;
-using Orleans;
-using Orleans.Hosting;
 using Orleans.Serialization;
 
 var builder = OrleansSiloHostBuilder.CreateBuilder(args);
@@ -14,7 +10,7 @@ builder
         .AddTransient<IHomerConfigFileGenerator, HomerConfigFileGenerator>()
         .AddSerializer(serializerBuilder => 
             serializerBuilder.AddNewtonsoftJsonSerializer(
-                type => new[] {"KubeOpsOrleans", "k8s"}.Any(p => type.FullName.StartsWith(p))
+                type => new[] {"KubeOpsOrleans", "k8s"}.Any(p => type.FullName?.StartsWith(p) ?? false)
                 )
             )
         .AddKubernetesOperator(settings =>

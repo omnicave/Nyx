@@ -11,17 +11,15 @@ internal class ExternalClusterClient : IClusterClient, IHostedService
     private IServiceProvider? _serviceProvider;
     private IClusterClient? _clusterClientImplementation;
 
-    public ExternalClusterClient(
-        IServiceProvider parentServiceProvider,
-        IEnumerable<Action<IClientBuilder>> configurator
-    )
+    public ExternalClusterClient(IConfiguration configuration, IServiceProvider parentServiceProvider,
+        IEnumerable<Action<IClientBuilder>> configurator)
     {
         _serviceCollection = new ServiceCollection();
         _serviceCollection.AddSingleton(parentServiceProvider.GetRequiredService<ILoggerProvider>());
         _serviceCollection.AddSingleton(parentServiceProvider.GetRequiredService<ILoggerFactory>());
         _serviceCollection.TryAdd(ServiceDescriptor.Singleton(typeof(ILogger<>), typeof(Logger<>)));
 
-        var builder = new ClientBuilder(_serviceCollection);
+        var builder = new ClientBuilder(_serviceCollection, configuration);
 
         foreach (var item in configurator) 
             item(builder);

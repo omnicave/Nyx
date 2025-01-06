@@ -1,34 +1,40 @@
-using System.Collections.Concurrent;
 using System.Text;
 using Microsoft.Extensions.Options;
-using NATS.Client;
-using NATS.Client.Internals;
+using NATS.Client.Core;
 using NATS.Client.JetStream;
-using NATS.Client.KeyValue;
+using NATS.Client.KeyValueStore;
 using Newtonsoft.Json;
 using Nyx.Orleans.Nats.Clustering.Storage.Models;
-using Orleans;
+using Nyx.Orleans.Serialization;
 using Orleans.Configuration;
 using Orleans.Runtime;
 using Orleans.Serialization;
 
 namespace Nyx.Orleans.Nats.Clustering;
 
-public class BaseNatsClusteringBucket : IDisposable
+public class BaseNatsClusteringBucket : IAsyncDisposable
 {
     protected readonly NatsClusteringOptions NatsClusteringOptions;
     protected readonly ClusterOptions OrleansClusterOptions;
-    private readonly IConnection _connection;
+    private readonly NatsConnection _connection;
     
     private readonly JsonSerializerSettings _jsonSerializerSettings;
+    private readonly NatsJSContext _jsContext;
+    private readonly NatsKVContext _kvContext;
+    private readonly NewtonsoftNatsSerializer<ClusteringEntryStorage> _serializer;
 
     protected BaseNatsClusteringBucket(IOptions<NatsClusteringOptions> natsClusteringOptions, IOptions<ClusterOptions> clusterOptions)
     {
         NatsClusteringOptions = natsClusteringOptions.Value;
         OrleansClusterOptions = clusterOptions.Value;
-        
-        var factory = new ConnectionFactory();
-        _connection = factory.CreateConnection(NatsClusteringOptions.NatsUrl);
+
+        _connection = new NatsConnection(new NatsOpts()
+        {
+            Url = NatsClusteringOptions.NatsUrl
+        });
+
+        _jsContext = new NatsJSContext(_connection);
+        _kvContext = new NatsKVContext(_jsContext);
         
         _jsonSerializerSettings = new JsonSerializerSettings
         {
@@ -48,11 +54,13 @@ public class BaseNatsClusteringBucket : IDisposable
         _jsonSerializerSettings.Converters.Add(new GrainIdConverter());
         _jsonSerializerSettings.Converters.Add(new NewtonsoftJsonSiloAddressConverter());
         _jsonSerializerSettings.Converters.Add(new UniqueKeyConverter());
+
+        _serializer = new NewtonsoftNatsSerializer<ClusteringEntryStorage>(_jsonSerializerSettings);
     }
     private string GetBucketName() =>
         $"{NatsClusteringOptions.BucketName}-{OrleansClusterOptions.ClusterId}-{OrleansClusterOptions.ServiceId}";
 
-    protected IKeyValue GetBucket() => _connection.CreateKeyValueContext(GetBucketName());
+    protected ValueTask<INatsKVStore> GetBucket() => _kvContext.GetStoreAsync(GetBucketName());
     
     protected string GetKey(SiloAddress siloAddress) => siloAddress.ToParsableString()
         .Replace(':', '-')
@@ -62,83 +70,78 @@ public class BaseNatsClusteringBucket : IDisposable
         key.Replace('-', ':')
             .Replace('/', '@')
     );
-
-    protected byte[] Serialize<T>(T o)
+    
+    //
+    public virtual async ValueTask DisposeAsync()
     {
-        return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(o, _jsonSerializerSettings));
-    }
-
-    protected T Deserialize<T>(byte[] buffer)
-    {
-        var o = JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(buffer), _jsonSerializerSettings) ?? throw new InvalidOperationException();
-        return o;
+        await _connection.DisposeAsync();
     }
     
-    public virtual void Dispose()
+    private async Task EnsureBucketExists()
     {
-        _connection.Dispose();
+        var result = _kvContext.GetBucketNamesAsync();
+        var bucketNames = result.ToBlockingEnumerable().ToList();
+        if (!bucketNames.Contains(GetBucketName()))
+        {
+            await _kvContext.CreateStoreAsync(new NatsKVConfig(GetBucketName())
+            {
+                Storage = NatsKVStorageType.Memory,
+                MaxAge = TimeSpan.FromMinutes(1),
+                History = 5
+            });
+        }
     }
-    
-    private void EnsureBucketExists()
+    protected async Task Init()
     {
-        var kvm = _connection.CreateKeyValueManagementContext();
-
-        var kvc = KeyValueConfiguration.Builder()
-            .WithName(GetBucketName())
-            .WithMaxHistoryPerKey(5)
-            .WithTtl(Duration.OfMinutes(1))
-            .WithStorageType(StorageType.Memory)
-            .Build();
-
-        var kvs = kvm.Create(kvc);
-    }
-    protected void Init()
-    {
-        EnsureBucketExists();
+        await EnsureBucketExists();
     }
 
-    protected void RefreshTtlForSiloEntry(SiloAddress siloAddress)
+    protected async Task RefreshTtlForSiloEntry(SiloAddress siloAddress)
     {
-        var kv = GetBucket();
+        var kv = await GetBucket();
 
         var key = GetKey(siloAddress);
-        var kve = kv.Get(key);
-        if (kve == null)
+        var kve = await kv.GetEntryAsync<ClusteringEntryStorage>(key);
+        if (kve.Value == null)
             return;
-        
-        kv.Put(key, kve.Value);
+        await kv.PutAsync(key, kve.Value);
     }
     
-    protected void Upsert(MembershipEntry entry, TableVersion tableVersion, string? etag = null, ulong? natsRevision = null)
+    protected async Task Upsert(MembershipEntry entry, TableVersion tableVersion, string? etag = null, ulong? natsRevision = null)
     {
-        var kv = GetBucket();
+        var kv = await GetBucket();
         var w = new ClusteringEntryStorage(entry, tableVersion);
-        kv.Put(GetKey(entry.SiloAddress), Serialize(w));
+        await kv.PutAsync(GetKey(entry.SiloAddress), w, _serializer);
     }
 
-    protected ClusteringEntry Get(SiloAddress siloAddress)
+    protected async Task<ClusteringEntry> Get(SiloAddress siloAddress)
     {
-        var kv = GetBucket();
-        var w = kv.Get(GetKey(siloAddress));
+        var kv = await GetBucket();
+        var w = await kv.GetEntryAsync<ClusteringEntryStorage>(GetKey(siloAddress));
         return DeserializeClusteringEntryStorage(w);
     }
 
-    private ClusteringEntry DeserializeClusteringEntryStorage(KeyValueEntry kve)
+    private ClusteringEntry DeserializeClusteringEntryStorage(NatsKVEntry<ClusteringEntryStorage> kve)
     {
-        var storedEntry = Deserialize<ClusteringEntryStorage>(kve.Value);
+        if (kve.Value == null) 
+            throw new InvalidOperationException();
+        
+        var storedEntry = kve.Value;
         return new ClusteringEntry(storedEntry.Entry, storedEntry.TableVersion, kve.Revision);
     }
 
-    protected IEnumerable<ClusteringEntry> GetAll()
+    protected async Task<IEnumerable<ClusteringEntry>> GetAll()
     {
-        var kv = GetBucket();
-        var result = kv.Keys().Select(ReadMembershipEntry).ToList().AsReadOnly();
-        return result;
+        var kv = await GetBucket();
+        
+        var result = new List<ClusteringEntry>();
 
-        ClusteringEntry ReadMembershipEntry(string key)
+        await foreach (var item in kv.GetKeysAsync())
         {
-            var kentry = kv.Get(key);
-            return DeserializeClusteringEntryStorage(kentry);
+            var e = await kv.GetEntryAsync<ClusteringEntryStorage>(item, serializer: _serializer );
+            result.Add(DeserializeClusteringEntryStorage(e));
         }
+        
+        return result;
     }
 }

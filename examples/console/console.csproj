@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\CommandLine\Nyx.Cli\Nyx.Cli.csproj" />
+    <ProjectReference Include="..\..\src\Nyx.Utils\Nyx.Utils.csproj" />
   </ItemGroup>
 
   <ItemGroup>

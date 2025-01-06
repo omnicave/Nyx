@@ -1,5 +1,4 @@
 using Newtonsoft.Json;
-using Nyx.Orleans.Nats.Clustering;
 using Orleans;
 using Orleans.GrainReferences;
 using Orleans.Runtime;

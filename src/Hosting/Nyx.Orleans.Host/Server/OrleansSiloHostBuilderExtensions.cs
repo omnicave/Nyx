@@ -1,3 +1,4 @@
+using System.Net;
 using Microsoft.Extensions.Options;
 using Nyx.Orleans.Host.Db;
 using Nyx.Orleans.Serialization;
@@ -14,7 +15,7 @@ public static class OrleansSiloHostBuilderExtensions
     public static OrleansSiloHostBuilder ConfigureForDevelopment(this OrleansSiloHostBuilder builder)
     {
         builder.ConfigureClustering((_, siloBuilder) =>
-            siloBuilder.UseDevelopmentClustering(primarySiloEndpoint: null)
+            siloBuilder.UseDevelopmentClustering(primarySiloEndpoint: new IPEndPoint(IPAddress.Loopback, 11111))
         );
         builder.UseInMemoryPubStore();
         builder.UseInMemoryInternalGrainStorage();

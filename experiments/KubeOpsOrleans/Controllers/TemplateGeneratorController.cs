@@ -16,7 +16,7 @@ public class TemplateGeneratorController : Controller
     
     [Route("/homer")]
     [HttpGet]
-    public async Task<IActionResult> Homer()
+    public Task<IActionResult> Homer()
     {
         // var s = await _homerConfigFileGenerator.RenderTemplate();
         // return File(s, "application/yaml");

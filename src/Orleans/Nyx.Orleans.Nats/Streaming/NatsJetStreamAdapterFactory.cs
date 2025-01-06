@@ -39,9 +39,13 @@ public class NatsJetStreamAdapterFactory : IQueueAdapterFactory
         _queueMapper = new HashRingBasedStreamQueueMapper(hashRingOptions, name);
     }
 
-    public Task<IQueueAdapter> CreateAdapter()
+    public async Task<IQueueAdapter> CreateAdapter()
     {
-        return Task.FromResult<IQueueAdapter>(new NatsQueueAdapter(_name, _queueMapper, _clusterOptions, _natsStreamingOptions));
+        var adapter = new NatsQueueAdapter(_name, _queueMapper, _clusterOptions, _natsStreamingOptions);
+
+        await adapter.Init();
+        
+        return adapter;
     }
 
     public IQueueAdapterCache GetQueueAdapterCache() => _queueAdapterCache; 

@@ -21,8 +21,11 @@ public class StartSiloCommand
         applicationLifetime.ApplicationStopping
             .Register(obj =>
                 {
+                    if (obj == null)
+                        return;
+                    
                     var tcs = (TaskCompletionSource<object>)obj;
-                    tcs.TrySetResult(null);
+                    tcs.TrySetResult(new object());
                 },
                 waitForStop);
         //

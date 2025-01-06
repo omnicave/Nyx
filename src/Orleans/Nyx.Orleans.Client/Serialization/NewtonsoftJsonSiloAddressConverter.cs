@@ -1,17 +1,16 @@
 using Newtonsoft.Json;
-using Orleans.Runtime;
 
-namespace Nyx.Orleans.Nats.Clustering;
+namespace Nyx.Orleans.Serialization;
 
 public sealed class NewtonsoftJsonSiloAddressConverter : JsonConverter
 {
 
-    override public bool CanConvert(Type objectType) => objectType == typeof(SiloAddress);
+    public override bool CanConvert(Type objectType) => objectType == typeof(SiloAddress);
 
-    override public object ReadJson(JsonReader reader, Type objectType, object existingValue, JsonSerializer serializer)
-        => SiloAddress.FromParsableString(reader.Value.ToString()!);
+    public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        => SiloAddress.FromParsableString(reader.Value?.ToString() ?? throw new ArgumentNullException(nameof(existingValue)));
 
-    override public void WriteJson(JsonWriter writer, object value, JsonSerializer serializer)
-        => writer.WriteValue(((SiloAddress)value).ToParsableString());
+    public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        => writer.WriteValue((value as SiloAddress)?.ToParsableString() ?? throw new ArgumentOutOfRangeException(nameof(value)));
 
 }
