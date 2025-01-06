@@ -32,6 +32,8 @@
     <EmbeddedResource Include="sql\postgres\PostgreSQL-Main.sql" />
     <EmbeddedResource Include="sql\postgres\PostgreSQL-Persistence.sql" />
     <EmbeddedResource Include="sql\postgres\PostgreSQL-Reminders.sql" />
+
+    <EmbeddedResource Include="OrleansAdoNetContent\**" />
   </ItemGroup>
 
 </Project>
