@@ -43,9 +43,9 @@ public static class NewtonsoftJsonSerializerSettingsBuilder
         jsonSerializerSettings.TypeNameHandling = TypeNameHandling.All;
         jsonSerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.None;
         jsonSerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
-        jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Ignore;
+        jsonSerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
         jsonSerializerSettings.MissingMemberHandling = MissingMemberHandling.Ignore;
-        jsonSerializerSettings.NullValueHandling = NullValueHandling.Ignore;
+        jsonSerializerSettings.NullValueHandling = NullValueHandling.Include;
         jsonSerializerSettings.ConstructorHandling = ConstructorHandling.AllowNonPublicDefaultConstructor;
         jsonSerializerSettings.TypeNameAssemblyFormatHandling = TypeNameAssemblyFormatHandling.Simple;
         jsonSerializerSettings.Formatting = Formatting.None;
