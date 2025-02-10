@@ -12,6 +12,7 @@
     <PackageReference Include="Npgsql" />
     <PackageReference Include="OrleansDashboard" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Annotations" />
     <PackageReference Include="Microsoft.Orleans.Server" />
     <PackageReference Include="Microsoft.Orleans.Serialization.NewtonsoftJson" />
     <PackageReference Include="Microsoft.Orleans.Clustering.AdoNet" />

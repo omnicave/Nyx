@@ -20,6 +20,8 @@ public partial class OrleansSiloHostBuilder
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = title, Version = "v1" });
                 
+                c.EnableAnnotations();
+                
                 c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
                     In = ParameterLocation.Header,
@@ -41,7 +43,7 @@ public partial class OrleansSiloHostBuilder
                                 Id="Bearer"
                             }
                         },
-                        new string[]{}
+                        []
                     }
                 });
             }
