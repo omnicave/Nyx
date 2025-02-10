@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
+using Scalar.AspNetCore;
 
 namespace Nyx.Orleans.Host;
 
@@ -62,16 +63,21 @@ public partial class OrleansSiloHostBuilder
         );
     }
 
-    private void SetupAppBuilder(IHostEnvironment environment, IApplicationBuilder app, int healthCheckPort /* = 5081 */)
+    private void SetupAppBuilder(WebApplication app, int healthCheckPort /* = 5081 */)
     {
-        if (environment.IsDevelopment())
+        if (app.Environment.IsDevelopment())
         {
             app.UseDeveloperExceptionPage();
         }
 
-        app.UseSwagger();
+        app.UseSwagger(options =>
+        {
+            options.RouteTemplate = "/openapi/{documentName}.json";
+        });
         app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{_title} v{_version}"));
-
+        
+        app.MapScalarApiReference();
+        
         app.UseAuthentication();
         app.UseAuthorization();
 
