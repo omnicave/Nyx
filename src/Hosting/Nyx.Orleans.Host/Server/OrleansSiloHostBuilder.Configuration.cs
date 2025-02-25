@@ -15,13 +15,13 @@ public partial class OrleansSiloHostBuilder
         return this;
     }
 
-    public OrleansSiloHostBuilder ConfigureJsonSerializer(Action<MvcNewtonsoftJsonOptions> d)
+    public OrleansSiloHostBuilder ConfigureNewtonsoftJsonSerializer(Action<MvcNewtonsoftJsonOptions> d)
     {
         _configureNewtonsoftJsonSerializerForWebApi = d ?? throw new ArgumentNullException(nameof(d));
         return this;
     }
 
-    public OrleansSiloHostBuilder ConfigureJsonSerializer(Action<JsonOptions> d)
+    public OrleansSiloHostBuilder ConfigureSystemTextJsonSerializer(Action<JsonOptions> d)
     {
         _configureSystemTextJsonSerializerForWebApi = d ?? throw new ArgumentNullException(nameof(d));
         return this;
