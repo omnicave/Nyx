@@ -29,7 +29,7 @@ public partial class OrleansSiloHostBuilder
     
     private Action<MvcNewtonsoftJsonOptions> _configureNewtonsoftJsonSerializerForWebApi = options =>
     {
-        options.SerializerSettings.TypeNameHandling = TypeNameHandling.Auto;
+        options.SerializerSettings.TypeNameHandling = TypeNameHandling.None;
         options.SerializerSettings.PreserveReferencesHandling = PreserveReferencesHandling.None;
         options.SerializerSettings.DateFormatHandling = DateFormatHandling.IsoDateFormat;
         options.SerializerSettings.DefaultValueHandling = DefaultValueHandling.Include;
