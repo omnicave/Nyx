@@ -11,7 +11,13 @@ public partial class OrleansSiloHostBuilder
 {
     public OrleansSiloHostBuilder ConfigureApplicationBuilder(Action<IApplicationBuilder> appBuilderConfiguration)
     {
-        ApplicationBuilderConfiguration.Add(appBuilderConfiguration);
+        WebApplicationConfiguration.Add(appBuilderConfiguration);
+        return this;
+    }
+    
+    public OrleansSiloHostBuilder ConfigureWebApplication(Action<WebApplication> webApplicationConfiguration)
+    {
+        WebApplicationConfiguration.Add(webApplicationConfiguration);
         return this;
     }
 
@@ -52,5 +58,5 @@ public partial class OrleansSiloHostBuilder
     internal Action<HostBuilderContext, ISiloBuilder>? ClusteringConfiguration;
     internal readonly List<Action<HostBuilderContext, ISiloBuilder>> SiloBuilderExtraConfiguration = new();
     internal Action<HostBuilderContext, ISiloBuilder> PubStoreConfiguration = (context, builder) => { };
-    internal readonly List<Action<IApplicationBuilder>> ApplicationBuilderConfiguration = new();
+    internal readonly List<Action<WebApplication>> WebApplicationConfiguration = new();
 }

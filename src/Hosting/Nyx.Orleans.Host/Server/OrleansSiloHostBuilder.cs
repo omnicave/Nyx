@@ -65,7 +65,7 @@ public partial class OrleansSiloHostBuilder : BaseHostBuilder
         SetupAppBuilder(app, healthCheckPort);
         app.MapControllers();
 
-        foreach (var item in ApplicationBuilderConfiguration)
+        foreach (var item in WebApplicationConfiguration)
         {
             item(app);
         }
