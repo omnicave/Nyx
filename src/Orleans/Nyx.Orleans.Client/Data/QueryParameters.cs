@@ -1,19 +1,29 @@
 namespace Nyx.Orleans.Data;
 
 
+[GenerateSerializer]
+[Alias("Nyx.Orleans.Data.QueryParameters")]
 public record QueryParameters(
-    List<QueryFilter> Filters,
-    QueryResultOrder Order,
-    string SearchString = "",
-    int PageSize = 10
+    [property: Id(0)] List<QueryFilter> Filters,
+    [property: Id(1)] QueryResultOrder Order,
+    [property: Id(2)] string SearchString = "",
+    [property: Id(3)] int PageSize = 10
 )
 {
     public static readonly QueryParameters Default = new(new(), QueryResultOrder.Default);
 }
 
-public record QueryFilter(string Field, string[] Values);
+[GenerateSerializer]
+[Alias("Nyx.Orleans.Data.QueryFilter")]
+public record QueryFilter(
+    [property: Id(10)] string Field, 
+    [property: Id(11)] string[] Values);
 
-public record QueryResultOrder(string Field, bool Ascending)
+[GenerateSerializer]
+[Alias("Nyx.Orleans.Data.QueryResultOrder")]
+public record QueryResultOrder(
+    [property: Id(10)] string Field, 
+    [property: Id(11)] bool Ascending)
 {
     public static readonly QueryResultOrder Default = new("", true);
 }
