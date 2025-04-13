@@ -9,19 +9,14 @@ namespace Nyx.Orleans.Nats.Streaming;
 
 public record NatsBatchContainerEntry(Guid InternalId, object Event, long Sequence);
 
-public class NatsBatchContainer : IBatchContainer
+[method: JsonConstructor]
+public class NatsBatchContainer(
+    StreamId streamId,
+    StreamSequenceToken sequenceToken
+    ) : IBatchContainer
 {
     [JsonProperty] 
     internal List<NatsBatchContainerEntry> Entries { get; } = new();
-    
-    [JsonConstructor]
-    public NatsBatchContainer(
-        StreamId streamId,
-        StreamSequenceToken sequenceToken)
-    {
-        StreamId = streamId;
-        SequenceToken = sequenceToken;
-    }
 
     public IEnumerable<Tuple<T, StreamSequenceToken>> GetEvents<T>()
     {
@@ -40,7 +35,7 @@ public class NatsBatchContainer : IBatchContainer
         return false;
     }
 
-    public StreamId StreamId { get; }
-    
-    public StreamSequenceToken SequenceToken { get; }
+    public StreamId StreamId { get; } = streamId;
+
+    public StreamSequenceToken SequenceToken { get; } = sequenceToken;
 }

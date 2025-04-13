@@ -11,8 +11,18 @@ public class NatsStreamingOptions
     }
 
     public string NatsUrl { get; set; }
-    
+
     public string? Prefix { get; set; }
 
-    public Func<StreamConfig, StreamConfig>? StreamConfigurationBuilder { get; set; } = (c) => c;
+
+    public Func<StreamConfig, StreamConfig> StreamConfigurationBuilder { get; set; } =
+        (c) =>
+        {
+            c.Retention = StreamConfigRetention.Workqueue;
+            c.AllowDirect = true;
+            return c;
+        };
+
+    public Func<ConsumerConfig, ConsumerConfig> ConsumerConfigurationBuilder { get; set; } = config => config;
+    public string? ConsumerName { get; set; }
 }
