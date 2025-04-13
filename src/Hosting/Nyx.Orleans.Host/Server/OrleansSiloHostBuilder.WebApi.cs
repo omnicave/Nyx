@@ -14,6 +14,8 @@ public partial class OrleansSiloHostBuilder
             .AddNewtonsoftJson(_configureNewtonsoftJsonSerializerForWebApi);
         
         builder.Services.AddEndpointsApiExplorer();
+
+        builder.Services.AddOpenApi();
         
         // swagger support
         builder.Services.AddSwaggerGen(
@@ -70,10 +72,7 @@ public partial class OrleansSiloHostBuilder
             app.UseDeveloperExceptionPage();
         }
 
-        app.UseSwagger(options =>
-        {
-            options.RouteTemplate = "/openapi/{documentName}.json";
-        });
+        app.UseSwagger();
         app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{_title} v{_version}"));
         
         app.MapScalarApiReference();
