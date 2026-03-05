@@ -23,6 +23,11 @@ public interface IDataOperationContext : IDisposable, IAsyncDisposable
     IEntityRepository GetEntityRepository();
 }
 
+public interface IEntityFrameworkDataOperationContext : IDataOperationContext
+{
+    DbContext DbContext { get; }
+}
+
 /// <summary>
 ///     Describes a session where data will be fetched from the provider.
 /// </summary>

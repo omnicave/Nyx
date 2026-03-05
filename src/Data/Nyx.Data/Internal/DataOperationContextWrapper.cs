@@ -11,7 +11,7 @@ namespace Nyx.Data.Internal;
 ///     long lived (such as in .NET Orleans).
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class DataOperationContextWrapper<T> : IDataOperationContext
+public class DataOperationContextWrapper<T> : IEntityFrameworkDataOperationContext
     where T: IDataOperationContext
 {
     private readonly IServiceScope _scope;
@@ -62,4 +62,17 @@ public class DataOperationContextWrapper<T> : IDataOperationContext
 
     public IEntityRepository Entities => _context.Entities;
     public IEntityRepository GetEntityRepository() => _context.GetEntityRepository();
+
+    public DbContext DbContext
+    {
+        get
+        {
+            if (_context is IEntityFrameworkDataOperationContext efContext)
+            {
+                return efContext.DbContext;
+            }
+
+            throw new InvalidOperationException("The underlying data operation context does not expose a DbContext.");
+        }
+    }
 }

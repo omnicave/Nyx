@@ -10,7 +10,7 @@ namespace Nyx.Data;
 /// <summary>
 ///     The SimpleDataOperationContext commits changes immediately.
 /// </summary>
-public class SimpleDataOperationContext : IDataOperationContext
+public class SimpleDataOperationContext : IEntityFrameworkDataOperationContext
 {
     private readonly ILogger<SimpleDataOperationContext> _log;
     private int _actionCount = 0;
@@ -97,4 +97,6 @@ public class SimpleDataOperationContext : IDataOperationContext
         Dispose();
         return ValueTask.CompletedTask;
     }
+
+    public DbContext DbContext => _dbContext;
 }

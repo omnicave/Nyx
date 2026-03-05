@@ -7,7 +7,7 @@ using Nyx.Data.Internal;
 
 namespace Nyx.Data;
 
-public class TransactionalDataOperationContext : IDataOperationContext
+public class TransactionalDataOperationContext : IEntityFrameworkDataOperationContext
 {
     private readonly ILogger<TransactionalDataOperationContext> _log;
     private readonly IServiceProvider _serviceProvider;
@@ -82,4 +82,6 @@ public class TransactionalDataOperationContext : IDataOperationContext
             return ValueTask.CompletedTask;
         }
     }
+
+    public DbContext DbContext => _dbContext;
 }

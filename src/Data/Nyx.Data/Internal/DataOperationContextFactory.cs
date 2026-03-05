@@ -3,21 +3,14 @@ using Nyx.Data.Internal;
 
 namespace Nyx.Data;
 
-class DataOperationContextFactory : IDataOperationContextFactory
+class DataOperationContextFactory(IServiceProvider rootServiceProvider) : IDataOperationContextFactory
 {
-    private readonly IServiceProvider _serviceProvider;
-
-    public DataOperationContextFactory(IServiceProvider serviceProvider)
-    {
-        _serviceProvider = serviceProvider;
-    }
-
     public IDataOperationContext GetTransactionalOperationContext() =>
-        new DataOperationContextWrapper<TransactionalDataOperationContext>(_serviceProvider);
+        new DataOperationContextWrapper<TransactionalDataOperationContext>(rootServiceProvider);
 
     public IDataOperationContext GetBatchingOperationContext() =>
-        new DataOperationContextWrapper<BatchingDataOperationContext>(_serviceProvider);
+        new DataOperationContextWrapper<BatchingDataOperationContext>(rootServiceProvider);
 
     public IDataOperationContext GetSimpleOperationContext() =>
-        new DataOperationContextWrapper<SimpleDataOperationContext>(_serviceProvider);
+        new DataOperationContextWrapper<SimpleDataOperationContext>(rootServiceProvider);
 }

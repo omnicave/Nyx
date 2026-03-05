@@ -6,7 +6,7 @@ using Nyx.Data.Internal;
 
 namespace Nyx.Data;
 
-public class BatchingDataOperationContext : IDataOperationContext
+public class BatchingDataOperationContext : IEntityFrameworkDataOperationContext
 {
     private readonly ILogger<BatchingDataOperationContext> _log;
     private readonly IServiceProvider _serviceProvider;
@@ -77,4 +77,5 @@ public class BatchingDataOperationContext : IDataOperationContext
 
     public IEntityRepository Entities => _entities;
     public IEntityRepository GetEntityRepository() => _entities;
+    public DbContext DbContext => _dbContext;
 }

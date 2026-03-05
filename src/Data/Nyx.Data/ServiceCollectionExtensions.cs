@@ -83,7 +83,7 @@ public static class ServiceCollectionExtensions
             ? builder => builderAction(CommonOptionsBuilderConfiguration(builder))
             : builder => CommonOptionsBuilderConfiguration(builder);
 
-        return serviceCollection.AddDbContext<RootDbContext>(
+        return serviceCollection.AddDbContextPool<RootDbContext>(
             builder => Defaults(builder).UseNpgsql(connectionString, act)
             );
     }

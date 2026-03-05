@@ -2,24 +2,17 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 
-namespace Nyx.Data
+namespace Nyx.Data;
+
+public class RootDbContext(
+    DbContextOptions<RootDbContext> options,
+    IEnumerable<IDbContextConfigurator> configurators
+    )
+    : DbContext(options)
 {
-    public class RootDbContext : DbContext
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        private readonly IEnumerable<IDbContextConfigurator> _configurators;
-
-
-        public RootDbContext(
-            DbContextOptions<RootDbContext> options, 
-            IEnumerable<IDbContextConfigurator> configurators
-            ) : base(options)
-        {
-            _configurators = configurators;
-        }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            _configurators.ToList().ForEach( x=>x.OnModelCreating(modelBuilder));
-        }
+        configurators.ToList().ForEach( x=>x.OnModelCreating(modelBuilder));
     }
 }
