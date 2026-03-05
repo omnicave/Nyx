@@ -1,7 +1,4 @@
-using System;
-using Orleans;
-
-namespace Shipbot.Common.Management;
+namespace Nyx.Orleans.Management;
 
 public static class GrainFactoryExtensions
 {

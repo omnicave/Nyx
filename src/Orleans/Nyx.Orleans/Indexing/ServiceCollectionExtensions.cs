@@ -1,7 +1,7 @@
 using System;
+using Nyx.Orleans.Indexing;
 using Orleans;
 using Orleans.Hosting;
-using Shipbot.Common.Indexing;
 
 // ReSharper disable once CheckNamespace
 namespace Microsoft.Extensions.DependencyInjection;

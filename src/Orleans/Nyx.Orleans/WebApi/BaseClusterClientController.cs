@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 
-namespace Shipbot.WebApi.Common;
+namespace Nyx.Orleans.WebApi;
 
 public abstract class BaseClusterClientController(IClusterClient clusterClient) : ControllerBase
 {

@@ -1,10 +1,4 @@
-using System;
-using System.Threading.Tasks;
-using Microsoft.Extensions.DependencyInjection;
-using Orleans;
-using Orleans.Runtime;
-
-namespace Shipbot.Common.Indexing;
+namespace Nyx.Orleans.Indexing;
 
 public interface IIndexGrain : IGrainWithIntegerKey
 {

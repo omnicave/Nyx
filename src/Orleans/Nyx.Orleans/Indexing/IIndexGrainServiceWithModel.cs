@@ -1,9 +1,6 @@
-using System.Threading.Tasks;
-using Orleans;
-using Orleans.Runtime;
 using Orleans.Services;
 
-namespace Shipbot.Common.Indexing;
+namespace Nyx.Orleans.Indexing;
 
 public interface IIndexGrainService : IGrainService
 {

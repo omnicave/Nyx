@@ -1,4 +1,4 @@
-namespace Shipbot.WebApi.Common;
+namespace Nyx.Orleans.WebApi;
 
 public static class ResultExtensions {
 

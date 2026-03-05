@@ -1,24 +1,20 @@
-<Project Sdk="Microsoft.NET.Sdk">
-
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <OutputType>Library</OutputType>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />-->
   </ItemGroup>
-
   <ItemGroup>
     <Orleans_CodeGenInputs Remove="Jobs\Models\JobErrorInformation.cs" />
     <Orleans_CodeGenInputs Remove="Jobs\Models\JobStatus.cs" />
     <Orleans_CodeGenInputs Remove="Jobs\Services\IBackgroundJobIndexGrainResolver.cs" />
     <Orleans_CodeGenInputs Remove="Serialization\NewtonsoftJsonSerializer.cs" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\..\Orleans\Nyx.Orleans.Client\Nyx.Orleans.Client.csproj" />
   </ItemGroup>
-
 </Project>

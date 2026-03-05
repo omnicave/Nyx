@@ -1,33 +1,23 @@
-using System;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using Orleans;
-using Orleans.Runtime;
 using Orleans.Runtime.Services;
+using Orleans;
 
-namespace Shipbot.Common.Indexing;
+namespace Nyx.Orleans.Indexing;
 
-public class IndexGrainService<TIndexGrainContract> : GrainService, IIndexGrainService<TIndexGrainContract>
+public class IndexGrainService<TIndexGrainContract>(
+    IServiceProvider services,
+    GrainId id,
+    Silo silo,
+    ILoggerFactory loggerFactory,
+    IGrainFactory grainFactory)
+    : GrainService(id, silo, loggerFactory), IIndexGrainService<TIndexGrainContract>
     where TIndexGrainContract : IIndexGrain, IGrain
 {
-    private readonly IServiceProvider _services;
-    private readonly IGrainFactory _grainFactory;
+    private readonly IServiceProvider _services = services;
 
-    public IndexGrainService(
-        IServiceProvider services,
-        GrainId id,
-        Silo silo,
-        ILoggerFactory loggerFactory,
-        IGrainFactory grainFactory
-    ) : base(id, silo, loggerFactory)
-    {
-        _services = services;
-        _grainFactory = grainFactory;
-    }
-    
     public Task Index(GrainId callingGrainId)
     {
-        var indexGrain = _grainFactory.GetIndexGrain<TIndexGrainContract>();
+        var indexGrain = grainFactory.GetIndexGrain<TIndexGrainContract>();
         indexGrain.Index(callingGrainId).Ignore();
         return Task.CompletedTask;
     }
