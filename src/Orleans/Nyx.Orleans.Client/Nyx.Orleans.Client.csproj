@@ -1,17 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Nyx.Orleans</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" />
     <PackageReference Include="Microsoft.Orleans.Streaming" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />-->
   </ItemGroup>
-
   <ItemGroup>
     <Orleans_CodeGenInputs Remove="Nats\Streaming\Constants.cs" />
     <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsBatchContainer.cs" />
@@ -23,5 +20,4 @@
     <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsReceiver.cs" />
     <Orleans_CodeGenInputs Remove="Nats\Streaming\NatsStreamingOptions.cs" />
   </ItemGroup>
-
 </Project>

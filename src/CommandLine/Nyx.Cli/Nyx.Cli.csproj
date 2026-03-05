@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -19,5 +18,4 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Hosting\Nyx.Hosting\Nyx.Hosting.csproj" />
   </ItemGroup>
-
 </Project>

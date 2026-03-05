@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -8,10 +7,10 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Sdk" />
     
-    <PackageReference Include="Microsoft.CodeAnalysis.Common" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />
-    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
-    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.Common" />-->
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.Common" />-->
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />-->
+<!--    <PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />-->
   </ItemGroup>
   
   <ItemGroup>
