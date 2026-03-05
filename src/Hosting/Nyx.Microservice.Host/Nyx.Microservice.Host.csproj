@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\WebApi\Nyx.WebApi.Minimal\Nyx.WebApi.Minimal.csproj" />
+      <ProjectReference Include="..\..\WebApi\Nyx.WebApi\Nyx.WebApi.csproj" />
+      <ProjectReference Include="..\Nyx.Hosting\Nyx.Hosting.csproj" />
+      <ProjectReference Include="..\Nyx.Orleans.Host\Nyx.Orleans.Host.csproj" />
+    </ItemGroup>
+
+</Project>
