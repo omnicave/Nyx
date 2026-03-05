@@ -8,9 +8,9 @@ public class EnsureOrleansSchemaInPgsql : IHostedService
 {
     private readonly IEnumerable<OrleansPostgresConnection> _postgresConnections;
 
-    public EnsureOrleansSchemaInPgsql(IEnumerable<OrleansPostgresConnection> postgresConnections)
+    public EnsureOrleansSchemaInPgsql(IEnumerable<OrleansDatabaseConnection> postgresConnections)
     {
-        _postgresConnections = postgresConnections;
+        _postgresConnections = postgresConnections.OfType<OrleansPostgresConnection>().ToList();
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -30,6 +30,9 @@ public class EnsureOrleansSchemaInPgsql : IHostedService
         
         var c = new NpgsqlConnection(connectionString);
         await c.OpenAsync();
+
+        await EnsureDatabaseExists(c, selectedDatabase);
+
         var commmand = c.CreateCommand();
         commmand.CommandText = "SELECT * FROM pg_tables;";
 
@@ -62,6 +65,24 @@ public class EnsureOrleansSchemaInPgsql : IHostedService
         if (!skipClusteringSql) await ApplySqlFile(c, "PostgreSQL-Clustering.sql");
         if (!skipPersistenceSql) await ApplySqlFile(c, "PostgreSQL-Persistence.sql");
         if (!skipRemindersSql) await ApplySqlFile(c, "PostgreSQL-Reminders.sql");
+    }
+
+    private async Task EnsureDatabaseExists(NpgsqlConnection npgsqlConnection, string db)
+    {
+        if (string.IsNullOrWhiteSpace(db)) throw new ArgumentNullException(nameof(db));
+
+        await using var queryCommand= npgsqlConnection.CreateCommand();
+        queryCommand.CommandText = $"select count(oid) from pg_database where datname = '{db}';";
+
+        var count = (long)(await queryCommand.ExecuteScalarAsync() ?? 0);
+        var dbExists = count > 0;
+        if (!dbExists)
+        {
+            await using var createCommand = npgsqlConnection.CreateCommand();
+            createCommand.CommandText = "CREATE DATABASE " + db;
+
+            count = await createCommand.ExecuteNonQueryAsync();
+        }
     }
 
     private async Task ApplySqlFile(NpgsqlConnection npgsqlConnection, string postgresqlMainSql)
