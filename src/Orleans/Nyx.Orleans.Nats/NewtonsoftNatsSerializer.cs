@@ -5,7 +5,7 @@ using Newtonsoft.Json;
 
 namespace Nyx.Orleans.Nats;
 
-internal class NewtonsoftNatsSerializer<T>(JsonSerializerSettings serializerSettings) : INatsSerializer<T>
+public class NewtonsoftNatsSerializer<T>(JsonSerializerSettings serializerSettings) : INatsSerializer<T>
 {
     private readonly JsonSerializer _serializer = JsonSerializer.Create(serializerSettings);
 
