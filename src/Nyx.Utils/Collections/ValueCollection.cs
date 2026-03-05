@@ -27,6 +27,7 @@ public class ValueCollection<T> : IImmutableList<T>, IEquatable<ValueCollection<
     public ValueCollection(IImmutableList<T> source) : this(FromAnyEnumerable(source)) { }
     
     public ValueCollection(T[] source) : this(FromAnyEnumerable(source)) { }
+    public ValueCollection() : this(FromAnyEnumerable([])) { }
     
     // equality operators
     public static bool operator ==(ValueCollection<T>? left, ValueCollection<T>? right) 
