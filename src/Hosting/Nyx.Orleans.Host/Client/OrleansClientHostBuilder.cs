@@ -5,6 +5,7 @@ using Orleans.Serialization;
 
 namespace Nyx.Orleans.Host;
 
+[Obsolete]
 public class OrleansClientHostBuilder : BaseHostBuilder
 {
     private readonly string _clientName;

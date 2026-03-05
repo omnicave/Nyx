@@ -10,12 +10,12 @@ public static class OrleansSerializationConfiguration
     public static IServiceCollection AddOrleansSerializationDefaults(this IServiceCollection s)
     {
         var jsonSettings = NewtonsoftJsonSerializerSettingsBuilder.GetDefaultsWithOrleansSupport();
-        s.AddSerializer(
-                builder => builder.AddNewtonsoftJsonSerializer(type => type?.FullName?.StartsWith("Nyx") ?? false,
-                    jsonSettings)
+        s.AddSerializer(builder => builder.AddNewtonsoftJsonSerializer(
+                    type => type?.FullName?.StartsWith("Nyx") ?? false,
+                    jsonSettings
+                )
             )
-            .AddSerializer(
-                b => b.AddNewtonsoftJsonSerializer(type => type.IsExceptionType(), jsonSettings)
+            .AddSerializer(b => b.AddNewtonsoftJsonSerializer(type => type.IsExceptionType(), jsonSettings)
             );
 
         return s;

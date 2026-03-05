@@ -13,6 +13,7 @@ using HostBuilderContext = Microsoft.Extensions.Hosting.HostBuilderContext;
 
 namespace Nyx.Orleans.Host;
 
+[Obsolete]
 public partial class OrleansSiloHostBuilder : BaseHostBuilder
 {
     private readonly string _clusterId;

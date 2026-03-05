@@ -9,6 +9,8 @@ public partial class OrleansSiloHostBuilder
 {
     private void SetupWebApi(string title, WebApplicationBuilder builder, int apiPort, int healthCheckPort)
     {
+
+
         builder.Services.AddControllers()
             .AddJsonOptions(_configureSystemTextJsonSerializerForWebApi)
             .AddNewtonsoftJson(_configureNewtonsoftJsonSerializerForWebApi);
