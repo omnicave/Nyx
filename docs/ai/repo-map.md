@@ -4,7 +4,7 @@ High-level orientation for tools and packages.
 
 Root
 - Nyx.sln: solution file
-- Directory.Build.props: versioning + target frameworks (net8.0;net9.0)
+- Directory.Build.props: versioning + target framework (net10.0)
 - Directory.Packages.props: central package versions
 - docs/: ADRs
 - packages/: built NuGet packages (checked in)

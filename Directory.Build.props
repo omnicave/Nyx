@@ -6,7 +6,7 @@
 <!--        <OrleansVersion>7.1.2</OrleansVersion>-->
 <!--        <OrleansDashboardVersion>7.2.0</OrleansDashboardVersion>-->
         
-        <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+        <TargetFrameworks>net10.0</TargetFrameworks>
         
     </PropertyGroup>
 </Project>
