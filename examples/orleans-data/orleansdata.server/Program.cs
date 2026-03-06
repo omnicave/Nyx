@@ -41,7 +41,6 @@ var host = CommandLineHostBuilder.Create(args)
 
     })
     .ConfigureLoggingDefaults()
-    .RegisterCommand<StartSiloCommand>()
     // .WithRootCommandHandler(async (IHost host) =>
     // {
     //     var applicationLifetime = host.Services.GetRequiredService<IHostApplicationLifetime>();

@@ -5,8 +5,8 @@ using Nyx.Orleans.Host;
 using Nyx.Orleans.Nats;
 using Orleans;
 
-var hostBuilder = WebApplication.CreateBuilder(args)
-    .ConfigureSiloHost("ExampleOrleansCluster", "Ex1");
+var builder = WebApplication.CreateBuilder(args);
+builder.Host.ConfigureSiloHost("ExampleOrleansCluster", "Ex1");
 
 // var builder = OrleansSiloHostBuilder.CreateSiloHost("ExampleOrleansCluster", "Ex1", args: args);
 //
@@ -27,6 +27,6 @@ var hostBuilder = WebApplication.CreateBuilder(args)
 //         "Host=localhost; Port=54321; Database=postgres;Username=postgres;Password=password123")
 //     ;
 
-var host = hostBuilder.Build();
+var host = builder.Build();
 
 await host.RunAsync();
