@@ -22,7 +22,7 @@ var host = CommandLineHostBuilder.Create(args)
             var healthCheckPort = ctx.GetSingleOptionValue<int>("healthCheckPort", 5081);
             
             return OrleansSiloHostBuilder.CreateSiloHost("orleans-data", "orleans-data", "OrleansData Experiment", args, gatewayPort, siloPort, dashboardPort, apiPort, healthCheckPort )
-                .ConfigureClustering(builder => builder.UseDevelopmentClustering((IPEndPoint?)null))
+                .ConfigureClustering(builder => builder.UseDevelopmentClustering(new IPEndPoint(IPAddress.Loopback, 0)))
                 .ConfigureServices((context, collection) =>
                 {
                     collection.RegisterDbContext(

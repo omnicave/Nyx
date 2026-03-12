@@ -11,10 +11,10 @@ public class Product
     public Guid Id { get; set; }
     
     [Column("name")]
-    public string Name { get; set; }
+    public string Name { get; set; } = string.Empty;
     
     [Column("description")]
-    public string Description { get; set; }
+    public string Description { get; set; } = string.Empty;
 }
 
 [Table("order")]
@@ -25,7 +25,7 @@ public class Order
     public Guid Id { get; set; }
     
     [Column("productId")]
-    public Product Product { get; set; }
+    public Product Product { get; set; } = null!;
     public Guid ProductId { get; set; }
     
     [Column("count")]
@@ -40,7 +40,7 @@ public class OrderEvents
     public Guid Id { get; set; }
     
     [Column("orderId")]
-    public Order Order { get; set; }
+    public Order Order { get; set; } = null!;
     public Guid OrderId { get; set; }
     
     [Column("type")]
@@ -50,7 +50,7 @@ public class OrderEvents
     public DateTimeOffset DateTime { get; set; }
     
     [Column("notes")]
-    public string Notes { get; set; }
+    public string Notes { get; set; } = string.Empty;
 }
 
 public enum OrderEventType
@@ -62,4 +62,3 @@ public enum OrderEventType
     Delivering,
     Delivered,
 }
-

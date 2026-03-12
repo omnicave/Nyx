@@ -60,7 +60,7 @@ public class DataOperationContextWrapper<T> : IEntityFrameworkDataOperationConte
         return _context.BeginFetchOperation();
     }
 
-    public IEntityRepository Entities => _context.Entities;
+    public IEntityRepository Entities => _context.GetEntityRepository();
     public IEntityRepository GetEntityRepository() => _context.GetEntityRepository();
 
     public DbContext DbContext

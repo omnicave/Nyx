@@ -20,7 +20,7 @@ public class NyxConsoleFormatter : ConsoleFormatter
     }
 
     public override void Write<TState>(
-        in LogEntry<TState> logEntry, IExternalScopeProvider scopeProvider, TextWriter textWriter
+        in LogEntry<TState> logEntry, IExternalScopeProvider? scopeProvider, TextWriter textWriter
         )
     {
         // var sb = new StringBuilder(80);

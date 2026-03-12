@@ -14,13 +14,13 @@ public class PropertyReaderBuilderTests
     
     class Item
     {
-        public string StringProp { get; set; }
+        public string? StringProp { get; set; }
         
         public int IntProp { get; set; }
         
-        public SubItem SubItem { get; set; }
+        public SubItem? SubItem { get; set; }
         
-        public string[] ArrayOfString { get; set; }
+        public string[]? ArrayOfString { get; set; }
     }
     
     [Fact]
