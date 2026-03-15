@@ -19,41 +19,6 @@ public partial class OrleansSiloHostBuilder
 
         builder.Services.AddOpenApi();
         
-        // swagger support
-        builder.Services.AddSwaggerGen(
-            c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = title, Version = "v1" });
-                
-                c.EnableAnnotations();
-                
-                c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-                {
-                    In = ParameterLocation.Header,
-                    Description = "Please enter token",
-                    Name = "Authorization",
-                    Type = SecuritySchemeType.Http,
-                    BearerFormat = "JWT",
-                    Scheme = "bearer"
-                });
-                
-                c.AddSecurityRequirement(new OpenApiSecurityRequirement
-                {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type=ReferenceType.SecurityScheme,
-                                Id="Bearer"
-                            }
-                        },
-                        []
-                    }
-                });
-            }
-        );
-        
         builder.Services.AddHealthChecks();
         
         // get the current list of urls we are listening on and add '5082' to it to have the health checks respond
@@ -73,9 +38,6 @@ public partial class OrleansSiloHostBuilder
         {
             app.UseDeveloperExceptionPage();
         }
-
-        app.UseSwagger();
-        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", $"{_title} v{_version}"));
         
         app.MapScalarApiReference();
         

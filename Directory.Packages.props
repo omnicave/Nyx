@@ -72,8 +72,6 @@
     <PackageVersion Include="KubeOps" Version="7.6.1" />
     <PackageVersion Include="Scriban" Version="5.12.1" />
     <PackageVersion Include="NATS.Net" Version="2.6.5" />
-    <PackageVersion Include="Swashbuckle.AspNetCore" Version="9.0.3" />
-    <PackageVersion Include="Swashbuckle.AspNetCore.Annotations" Version="9.0.3" />
     <PackageVersion Include="Swashbuckle.AspNetCore.Newtonsoft" Version="7.2.0" />
     <PackageVersion Include="Scalar.AspNetCore" Version="2.6.4" />
     <PackageVersion Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.7">
