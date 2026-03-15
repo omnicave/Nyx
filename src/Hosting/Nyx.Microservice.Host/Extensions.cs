@@ -156,7 +156,8 @@ public static class Extensions
 
     public static WebApplication UseNyxMicroservice(this WebApplication app)
     {
-        app.ConfigureWebApiDefaults();
+        app.ConfigureWebApiDefaults()
+            .MapEndpoints();
 
         return app;
     }
