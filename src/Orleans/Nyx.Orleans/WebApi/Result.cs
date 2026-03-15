@@ -6,11 +6,11 @@ public static class ResultExtensions {
         => Result<TPayload>.Success(payload);
 }
 
-
+[GenerateSerializer]
 public record Result<TPayload>(
-    bool Successful,
-    TPayload? Data,
-    Error? Error
+    [property: Id(0)] bool Successful,
+    [property: Id(1)] TPayload? Data,
+    [property: Id(2)] Error? Error
 )
 {
     public static Result<TPayload> Success(TPayload data) => new(true, data, Error.None);
@@ -18,10 +18,11 @@ public record Result<TPayload>(
     public static Result<TPayload> Failure(int code, string description = "") => new(false, default, new Error(code, description));
 }
 
+[GenerateSerializer]
 public record CollectionResult<TPayload>(
-    bool Successful,
-    IEnumerable<TPayload> Data,
-    Error? Error
+    [property: Id(0)] bool Successful,
+    [property: Id(1)] IEnumerable<TPayload> Data,
+    [property: Id(2)] Error? Error
 )
 {
     public static CollectionResult<TPayload> Success(IEnumerable<TPayload> data) => new(true, data, Error.None);
@@ -29,12 +30,13 @@ public record CollectionResult<TPayload>(
     public static CollectionResult<TPayload> Failure(int code, string description = "") => new(false, Array.Empty<TPayload>(), new Error(code, description));   
 }
 
+[GenerateSerializer]
 public record PagedResult<TPayload>(
-    bool Successful,
-    int Page,
-    int Count,
-    IEnumerable<TPayload> Data,
-    Error? Error
+    [property: Id(0)] bool Successful,
+    [property: Id(1)] int Page,
+    [property: Id(2)] int Count,
+    [property: Id(3)] IEnumerable<TPayload> Data,
+    [property: Id(4)] Error? Error
 )
 {
     public static PagedResult<TPayload> Success(int page, int count, IEnumerable<TPayload> data) => new(true, page, count, data, Error.None);
@@ -42,9 +44,10 @@ public record PagedResult<TPayload>(
     public static PagedResult<TPayload> Failure(int code, string description = "") => new(false, 0, 0, Array.Empty<TPayload>(), new Error(code, description));   
 }
 
+[GenerateSerializer]
 public record Error(
-    int Code,
-    string Description
+    [property: Id(0)] int Code,
+    [property: Id(1)] string Description
 )
 {
     public static readonly Error None = new(0, string.Empty);
