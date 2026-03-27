@@ -10,16 +10,6 @@ public static class Extensions
 {
     public static IServiceCollection AutoRegisterEndpointsFromAssembly(this IServiceCollection services, Assembly assembly)
     {
-        assembly
-            .DefinedTypes
-            .Where(type => type is { IsAbstract: false, IsInterface: false } &&
-                           type.IsAssignableTo(typeof(IEndpointConfiguration)))
-            .Select(type => ServiceDescriptor.Transient(typeof(IEndpointConfiguration), type))
-            .ToList()
-            .ForEach( services.Add);
-
-
-
         return services.AutoRegisterServicesFromAssemblyImplementingType<IEndpointConfiguration>(assembly);
     }
 
